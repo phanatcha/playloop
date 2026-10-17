@@ -1,0 +1,12 @@
+**/node_modules
+**/.env
+**/.env.*
+**/coverage
+**/dist
+**/.aws-sam
+.git
+.github
+docs/*
+!docs/api
+server/test
+*.md

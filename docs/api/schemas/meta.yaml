@@ -1,0 +1,187 @@
+UploadLimit:
+  type: object
+  additionalProperties: false
+  required: [contentTypes, maxBytes]
+  properties:
+    contentTypes:
+      type: array
+      items:
+        type: string
+      example: [image/jpeg, image/png]
+    maxBytes:
+      type: integer
+      example: 5242880
+Meta:
+  type: object
+  description: Option lists and limits for the client. Genres, levels and badges come from the admin config.
+  additionalProperties: false
+  required:
+    - genres
+    - platforms
+    - buildStages
+    - engines
+    - backgroundPresets
+    - questionTypes
+    - cardTypes
+    - feedbackStatuses
+    - difficultyLevels
+    - strengths
+    - audiences
+    - comparisons
+    - improveCategories
+    - reactionEmojis
+    - reportReasons
+    - rouletteTimes
+    - levels
+    - badges
+    - uploadLimits
+  properties:
+    genres:
+      type: array
+      description: Active genres only
+      items:
+        type: object
+        additionalProperties: false
+        required: [key, label]
+        properties:
+          key:
+            $ref: common.yaml#/GenreKey
+          label:
+            type: string
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    buildStages:
+      type: array
+      items:
+        $ref: enums.yaml#/BuildStage
+    engines:
+      type: array
+      items:
+        $ref: enums.yaml#/Engine
+    backgroundPresets:
+      type: array
+      items:
+        $ref: enums.yaml#/BackgroundPreset
+    questionTypes:
+      type: array
+      items:
+        type: string
+    cardTypes:
+      type: array
+      items:
+        $ref: enums.yaml#/CardType
+    feedbackStatuses:
+      type: array
+      items:
+        $ref: enums.yaml#/FeedbackStatus
+    difficultyLevels:
+      type: array
+      items:
+        $ref: enums.yaml#/DifficultyLevel
+    strengths:
+      type: array
+      items:
+        $ref: enums.yaml#/Strength
+    audiences:
+      type: array
+      items:
+        $ref: enums.yaml#/Audience
+    comparisons:
+      type: array
+      items:
+        $ref: enums.yaml#/Comparison
+    improveCategories:
+      type: array
+      items:
+        $ref: enums.yaml#/ImproveCategory
+    reactionEmojis:
+      type: array
+      items:
+        $ref: enums.yaml#/ReactionEmoji
+    reportReasons:
+      type: array
+      items:
+        $ref: enums.yaml#/ReportReason
+    rouletteTimes:
+      type: array
+      items:
+        $ref: enums.yaml#/RouletteTime
+    levels:
+      type: array
+      items:
+        $ref: admin.yaml#/Level
+    badges:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [key, name, description, kind]
+        properties:
+          key:
+            $ref: enums.yaml#/BadgeKey
+          name:
+            type: string
+          description:
+            type: string
+          kind:
+            $ref: enums.yaml#/BadgeKind
+    uploadLimits:
+      type: object
+      additionalProperties: false
+      required: [avatar, game_media, game_background, proof_screenshot, web_build, download_build]
+      properties:
+        avatar:
+          type: array
+          items:
+            $ref: '#/UploadLimit'
+        game_media:
+          type: array
+          items:
+            $ref: '#/UploadLimit'
+        game_background:
+          type: array
+          items:
+            $ref: '#/UploadLimit'
+        proof_screenshot:
+          type: array
+          items:
+            $ref: '#/UploadLimit'
+        web_build:
+          type: array
+          items:
+            $ref: '#/UploadLimit'
+        download_build:
+          type: array
+          items:
+            $ref: '#/UploadLimit'
+LeaderboardEntry:
+  type: object
+  additionalProperties: false
+  required: [rank, user, points]
+  properties:
+    rank:
+      type: integer
+      minimum: 1
+    user:
+      $ref: user.yaml#/UserSummary
+    points:
+      type: integer
+      description: All-time points, or points earned this month
+Leaderboard:
+  type: object
+  additionalProperties: false
+  required: [period, items]
+  properties:
+    period:
+      type: string
+      enum: [all_time, month]
+    month:
+      type: string
+      pattern: '^[0-9]{4}-[0-9]{2}$'
+      example: 2026-10
+    items:
+      type: array
+      items:
+        $ref: '#/LeaderboardEntry'

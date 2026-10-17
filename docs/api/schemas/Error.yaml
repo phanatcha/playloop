@@ -1,0 +1,32 @@
+type: object
+required: [code, message]
+additionalProperties: false
+properties:
+  code:
+    type: string
+    enum:
+      - VALIDATION_ERROR
+      - UNAUTHORIZED
+      - FORBIDDEN
+      - NOT_FOUND
+      - CONFLICT
+      - NO_MATCH
+      - RATE_LIMITED
+      - INTERNAL_ERROR
+  message:
+    type: string
+    description: Human-readable message that can be shown to the user
+  details:
+    type: array
+    description: Field-level problems, only for VALIDATION_ERROR
+    items:
+      type: object
+      required: [path, message]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          example: /body/title
+        message:
+          type: string
+          example: must NOT have more than 120 characters

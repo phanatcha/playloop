@@ -1,0 +1,113 @@
+Page:
+  name: page
+  in: query
+  description: Page number, starting at 1
+  schema:
+    type: integer
+    minimum: 1
+    default: 1
+Limit:
+  name: limit
+  in: query
+  description: Items per page
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 50
+    default: 20
+Username:
+  name: username
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/Username
+UserId:
+  name: userId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+GameId:
+  name: gameId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+BuildId:
+  name: buildId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+ReviewId:
+  name: reviewId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+MissionId:
+  name: missionId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ClientId
+CardId:
+  name: cardId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+ReplyId:
+  name: replyId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+UploadId:
+  name: uploadId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+NotificationId:
+  name: notificationId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+ReportId:
+  name: reportId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+ReactionTargetType:
+  name: targetType
+  in: path
+  required: true
+  schema:
+    $ref: schemas/enums.yaml#/ReactionTargetType
+ReactionTargetId:
+  name: targetId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId
+Emoji:
+  name: emoji
+  in: path
+  required: true
+  schema:
+    $ref: schemas/enums.yaml#/ReactionEmoji
+ModerationTargetType:
+  name: targetType
+  in: path
+  required: true
+  schema:
+    $ref: schemas/enums.yaml#/ModerationTargetType
+ModerationTargetId:
+  name: targetId
+  in: path
+  required: true
+  schema:
+    $ref: schemas/common.yaml#/ObjectId

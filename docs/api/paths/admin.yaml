@@ -1,0 +1,385 @@
+stats:
+  get:
+    tags: [Admin]
+    operationId: getAdminStats
+    summary: Dashboard totals and daily activity
+    description: Admin only.
+    parameters:
+      - name: days
+        in: query
+        description: How many days of daily activity, ending today
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 90
+          default: 30
+    responses:
+      '200':
+        description: Stats
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminStats
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+reports:
+  get:
+    tags: [Admin]
+    operationId: listReports
+    summary: Moderation queue
+    description: Admin only. Oldest open reports first.
+    parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/ReportStatus
+      - name: targetType
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/ReportTargetType
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Reports
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/report.yaml#/AdminReportPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+report:
+  patch:
+    tags: [Admin]
+    operationId: resolveReport
+    summary: Resolve or dismiss a report
+    description: Admin only. Use the content and user endpoints to act on the target first.
+    parameters:
+      - $ref: ../parameters.yaml#/ReportId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/report.yaml#/ResolveReportInput
+    responses:
+      '200':
+        description: Updated report
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/report.yaml#/AdminReport
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+hideContent:
+  post:
+    tags: [Admin]
+    operationId: hideContent
+    summary: Hide a game, review or reply
+    description: Admin only. Hidden content disappears for everyone except admins and can be restored. The owner is notified with the reason.
+    parameters:
+      - $ref: ../parameters.yaml#/ModerationTargetType
+      - $ref: ../parameters.yaml#/ModerationTargetId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/admin.yaml#/ModerationInput
+    responses:
+      '200':
+        description: Content hidden
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/ModerationResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+restoreContent:
+  post:
+    tags: [Admin]
+    operationId: restoreContent
+    summary: Restore hidden content
+    description: Admin only. The owner is notified.
+    parameters:
+      - $ref: ../parameters.yaml#/ModerationTargetType
+      - $ref: ../parameters.yaml#/ModerationTargetId
+    responses:
+      '200':
+        description: Content visible again
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/ModerationResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+removeContent:
+  delete:
+    tags: [Admin]
+    operationId: removeContent
+    summary: Permanently remove a game, review or reply
+    description: Admin only. Cannot be undone. Removing a review also reverses the reputation it earned.
+    parameters:
+      - $ref: ../parameters.yaml#/ModerationTargetType
+      - $ref: ../parameters.yaml#/ModerationTargetId
+    responses:
+      '204':
+        description: Removed
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+users:
+  get:
+    tags: [Admin]
+    operationId: listUsers
+    summary: Search users
+    description: Admin only.
+    parameters:
+      - name: search
+        in: query
+        description: Matches username, display name or email
+        schema:
+          type: string
+          maxLength: 100
+      - name: status
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/UserStatus
+      - name: role
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/Role
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Users, newest first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminUserPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+user:
+  get:
+    tags: [Admin]
+    operationId: getUser
+    summary: Get one user with private fields
+    description: Admin only.
+    parameters:
+      - $ref: ../parameters.yaml#/UserId
+    responses:
+      '200':
+        description: User
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminUser
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+suspendUser:
+  post:
+    tags: [Admin]
+    operationId: suspendUser
+    summary: Suspend or ban a user
+    description: |
+      Admin only. until=null is a permanent ban. The user can't log in or act until then,
+      and their content is hidden while banned. Admins can't be suspended.
+    parameters:
+      - $ref: ../parameters.yaml#/UserId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/admin.yaml#/SuspendInput
+    responses:
+      '200':
+        description: Updated user
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminUser
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+unsuspendUser:
+  post:
+    tags: [Admin]
+    operationId: unsuspendUser
+    summary: Lift a suspension or ban
+    description: Admin only.
+    parameters:
+      - $ref: ../parameters.yaml#/UserId
+    responses:
+      '200':
+        description: Updated user
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminUser
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+userRole:
+  put:
+    tags: [Admin]
+    operationId: setUserRole
+    summary: Make a user an admin or a regular user
+    description: Admin only. You can't change your own role. The first admin is created with a seed script.
+    parameters:
+      - $ref: ../parameters.yaml#/UserId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/admin.yaml#/RoleInput
+    responses:
+      '200':
+        description: Updated user
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminUser
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+featured:
+  get:
+    tags: [Admin]
+    operationId: getFeaturedAdmin
+    summary: Current featured games
+    description: Admin only.
+    responses:
+      '200':
+        description: Featured games in order
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameCardList
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+  put:
+    tags: [Admin]
+    operationId: setFeatured
+    summary: Replace the featured games list
+    description: Admin only. Only published games.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/admin.yaml#/FeaturedInput
+    responses:
+      '200':
+        description: Featured games in order
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameCardList
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+config:
+  get:
+    tags: [Admin]
+    operationId: getConfig
+    summary: Genres, levels, badges and reputation points
+    description: Admin only.
+    responses:
+      '200':
+        description: Config
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/Config
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+  patch:
+    tags: [Admin]
+    operationId: updateConfig
+    summary: Change genres, levels, badges or reputation points (FR-031, FR-032)
+    description: Admin only. Genre keys can't be renamed or deleted, only deactivated. Level changes recalculate everyone's level.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/admin.yaml#/UpdateConfigInput
+    responses:
+      '200':
+        description: Updated config
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/Config
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden

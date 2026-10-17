@@ -1,0 +1,560 @@
+GameRef:
+  type: object
+  description: Small game card used inside other resources
+  additionalProperties: false
+  required: [id, title, coverUrl, deleted]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    title:
+      type: string
+      example: Tempest
+    coverUrl:
+      type: string
+      format: uri
+      nullable: true
+    deleted:
+      type: boolean
+      description: True when the developer deleted the game. Reviews of it stay visible.
+GameCard:
+  type: object
+  description: Game card on Browse, profiles and Roulette
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - pitch
+    - coverUrl
+    - genres
+    - platforms
+    - buildStage
+    - engine
+    - estimatedMinutes
+    - reviewCount
+    - owner
+    - publishedAt
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    title:
+      type: string
+      example: Tempest
+    pitch:
+      type: string
+      example: Stranded after a plane crash on a storm-cursed island, find a way to call for rescue.
+    coverUrl:
+      type: string
+      format: uri
+      nullable: true
+    genres:
+      type: array
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    buildStage:
+      $ref: enums.yaml#/BuildStage
+    engine:
+      $ref: enums.yaml#/Engine
+    estimatedMinutes:
+      type: integer
+      minimum: 0
+      description: Sum of mission minutes
+      example: 30
+    reviewCount:
+      type: integer
+      example: 12
+    owner:
+      $ref: user.yaml#/UserSummary
+    publishedAt:
+      $ref: common.yaml#/Timestamp
+Control:
+  type: object
+  additionalProperties: false
+  required: [key, action]
+  properties:
+    key:
+      type: string
+      minLength: 1
+      maxLength: 20
+      example: WASD
+    action:
+      type: string
+      minLength: 1
+      maxLength: 40
+      example: Move
+Credit:
+  type: object
+  additionalProperties: false
+  required: [role, name]
+  properties:
+    role:
+      type: string
+      minLength: 1
+      maxLength: 40
+      example: Design & Programming
+    name:
+      type: string
+      minLength: 1
+      maxLength: 60
+      example: Redline Interactive
+Theme:
+  type: object
+  description: Look of the game page, reused on every review page for this game
+  additionalProperties: false
+  required: [backgroundPreset, backgroundImageUrl, accentColor, controlsCardColor]
+  properties:
+    backgroundPreset:
+      type: string
+      nullable: true
+      enum: [sky, storm, overcast, night, null]
+      description: null when a custom image is used
+    backgroundImageUrl:
+      type: string
+      format: uri
+      nullable: true
+    accentColor:
+      $ref: common.yaml#/HexColor
+    controlsCardColor:
+      $ref: common.yaml#/HexColor
+ThemeInput:
+  type: object
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    backgroundPreset:
+      $ref: enums.yaml#/BackgroundPreset
+    backgroundUploadId:
+      type: string
+      pattern: '^[a-f0-9]{24}$'
+      description: A completed game_background upload. Replaces the preset.
+    accentColor:
+      $ref: common.yaml#/HexColor
+    controlsCardColor:
+      $ref: common.yaml#/HexColor
+Build:
+  type: object
+  additionalProperties: false
+  required: [id, target, status, fileName, size, version, uploadedAt, error, playUrl]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    target:
+      $ref: enums.yaml#/BuildTarget
+    status:
+      $ref: enums.yaml#/BuildStatus
+    fileName:
+      type: string
+      example: tempest-demo-windows.zip
+    size:
+      type: integer
+      description: Bytes
+      example: 16777216
+    version:
+      type: string
+      description: Game version when the build was uploaded
+      example: '0.1'
+    uploadedAt:
+      $ref: common.yaml#/Timestamp
+    error:
+      type: string
+      nullable: true
+      description: Why processing failed, for example "index.html not found at the zip root"
+    playUrl:
+      type: string
+      format: uri
+      nullable: true
+      description: Only for ready web builds. Load it in a sandboxed iframe.
+Delivery:
+  type: object
+  description: How reviewers get the game
+  additionalProperties: false
+  required: [webUrl, builds]
+  properties:
+    method:
+      $ref: enums.yaml#/DeliveryMethod
+    webUrl:
+      type: string
+      format: uri
+      nullable: true
+      description: External embeddable link, used instead of an uploaded web build
+    builds:
+      type: array
+      items:
+        $ref: '#/Build'
+DeliveryInput:
+  type: object
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    method:
+      $ref: enums.yaml#/DeliveryMethod
+    webUrl:
+      type: string
+      format: uri
+      pattern: '^https://'
+      maxLength: 500
+      nullable: true
+PlaytestSummary:
+  type: object
+  additionalProperties: false
+  required: [missionCount, estimatedMinutes]
+  properties:
+    missionCount:
+      type: integer
+      example: 3
+    estimatedMinutes:
+      type: integer
+      example: 30
+MyReviewRef:
+  type: object
+  description: The logged-in user's review for the current game version
+  additionalProperties: false
+  required: [id, status]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    status:
+      $ref: enums.yaml#/ReviewStatus
+GameDetail:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - status
+    - owner
+    - title
+    - pitch
+    - genres
+    - platforms
+    - version
+    - lastUpdatedAt
+    - media
+    - contentWarnings
+    - coreGameplay
+    - playable
+    - controls
+    - devNotes
+    - engineOther
+    - credits
+    - theme
+    - delivery
+    - playtest
+    - reviewCount
+    - isOwner
+    - createdAt
+    - updatedAt
+    - publishedAt
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    status:
+      $ref: enums.yaml#/GameStatus
+    owner:
+      $ref: user.yaml#/UserSummary
+    title:
+      type: string
+      example: Breach Protocol
+    pitch:
+      type: string
+      example: Lead a four-person squad through a fortified city.
+    genres:
+      type: array
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    buildStage:
+      $ref: enums.yaml#/BuildStage
+    version:
+      type: string
+      example: '0.3'
+    lastUpdatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: Set when the game is published or its version changes
+    media:
+      type: array
+      description: In display order. The first image is the cover.
+      items:
+        $ref: common.yaml#/Media
+    contentWarnings:
+      type: array
+      items:
+        type: string
+      example: [Realistic gun violence, Loud gunfire]
+    coreGameplay:
+      type: array
+      items:
+        $ref: common.yaml#/Bullet
+    playable:
+      type: array
+      items:
+        $ref: common.yaml#/Bullet
+    controls:
+      type: array
+      items:
+        $ref: '#/Control'
+    devNotes:
+      type: string
+      nullable: true
+    engine:
+      $ref: enums.yaml#/Engine
+    engineOther:
+      type: string
+      nullable: true
+      description: Engine name when engine is other
+    credits:
+      type: array
+      items:
+        $ref: '#/Credit'
+    theme:
+      $ref: '#/Theme'
+    delivery:
+      $ref: '#/Delivery'
+    playtest:
+      $ref: '#/PlaytestSummary'
+    reviewCount:
+      type: integer
+    isOwner:
+      type: boolean
+    myReview:
+      $ref: '#/MyReviewRef'
+    createdAt:
+      $ref: common.yaml#/Timestamp
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+    publishedAt:
+      type: string
+      format: date-time
+      nullable: true
+CreateGameInput:
+  type: object
+  additionalProperties: false
+  required: [title]
+  properties:
+    title:
+      type: string
+      minLength: 1
+      maxLength: 60
+UpdateGameInput:
+  type: object
+  description: Partial update. Used for autosave while editing a draft and for Save Changes on a published game.
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    title:
+      type: string
+      minLength: 1
+      maxLength: 60
+    pitch:
+      type: string
+      maxLength: 120
+    genres:
+      type: array
+      maxItems: 5
+      uniqueItems: true
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      uniqueItems: true
+      items:
+        $ref: enums.yaml#/Platform
+    buildStage:
+      $ref: enums.yaml#/BuildStage
+    version:
+      type: string
+      pattern: '^[0-9A-Za-z.+-]{1,20}$'
+      description: Changing the version of a published game lets past reviewers review it again
+      example: '0.3'
+    mediaIds:
+      type: array
+      maxItems: 8
+      uniqueItems: true
+      description: Completed game_media upload ids (or existing media ids) in display order
+      items:
+        $ref: common.yaml#/ObjectId
+    contentWarnings:
+      type: array
+      maxItems: 10
+      items:
+        type: string
+        minLength: 1
+        maxLength: 40
+    coreGameplay:
+      type: array
+      maxItems: 4
+      items:
+        $ref: common.yaml#/Bullet
+    playable:
+      type: array
+      maxItems: 6
+      items:
+        $ref: common.yaml#/Bullet
+    controls:
+      type: array
+      maxItems: 20
+      items:
+        $ref: '#/Control'
+    devNotes:
+      type: string
+      maxLength: 500
+      nullable: true
+    engine:
+      $ref: enums.yaml#/Engine
+    engineOther:
+      type: string
+      maxLength: 30
+      nullable: true
+    credits:
+      type: array
+      maxItems: 20
+      items:
+        $ref: '#/Credit'
+    theme:
+      $ref: '#/ThemeInput'
+    delivery:
+      $ref: '#/DeliveryInput'
+MyGameItem:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - pitch
+    - coverUrl
+    - status
+    - engine
+    - platforms
+    - reviewCount
+    - newReviewCount
+    - updatedAt
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    title:
+      type: string
+    pitch:
+      type: string
+    coverUrl:
+      type: string
+      format: uri
+      nullable: true
+    status:
+      $ref: enums.yaml#/GameStatus
+    buildStage:
+      $ref: enums.yaml#/BuildStage
+    engine:
+      $ref: enums.yaml#/Engine
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    reviewCount:
+      type: integer
+      example: 12
+    newReviewCount:
+      type: integer
+      description: Submitted reviews still in feedback status new
+      example: 3
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+MyGamesPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total, summary]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/MyGameItem'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+    summary:
+      type: object
+      additionalProperties: false
+      required: [published, drafts, reviewsReceived]
+      properties:
+        published:
+          type: integer
+          example: 1
+        drafts:
+          type: integer
+          example: 1
+        reviewsReceived:
+          type: integer
+          example: 12
+GameCardPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/GameCard'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+GameCardList:
+  type: object
+  additionalProperties: false
+  required: [items]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/GameCard'
+CreateBuildInput:
+  type: object
+  additionalProperties: false
+  required: [uploadId, target]
+  properties:
+    uploadId:
+      $ref: common.yaml#/ObjectId
+    target:
+      $ref: enums.yaml#/BuildTarget
+BuildDownload:
+  type: object
+  additionalProperties: false
+  required: [url, fileName, size, expiresAt]
+  properties:
+    url:
+      type: string
+      format: uri
+      description: Short-lived download link
+    fileName:
+      type: string
+    size:
+      type: integer
+    expiresAt:
+      $ref: common.yaml#/Timestamp
+BuildStatusInput:
+  type: object
+  additionalProperties: false
+  required: [status]
+  properties:
+    status:
+      type: string
+      enum: [ready, failed]
+    error:
+      type: string
+      maxLength: 300
+    entryPath:
+      type: string
+      maxLength: 300
+      description: Path of index.html inside the extracted build
+      example: index.html

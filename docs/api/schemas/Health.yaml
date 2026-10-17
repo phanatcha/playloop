@@ -1,0 +1,14 @@
+type: object
+required: [status, db, uptime]
+additionalProperties: false
+properties:
+  status:
+    type: string
+    enum: [ok]
+  db:
+    type: string
+    enum: [disconnected, connected, connecting, disconnecting]
+  uptime:
+    type: integer
+    description: Seconds since the process started
+    example: 3600

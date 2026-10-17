@@ -1,0 +1,71 @@
+RegisterInput:
+  type: object
+  additionalProperties: false
+  required: [username, email, password, acceptTerms]
+  properties:
+    username:
+      $ref: common.yaml#/Username
+    email:
+      $ref: common.yaml#/Email
+    password:
+      $ref: common.yaml#/Password
+    acceptTerms:
+      type: boolean
+      enum: [true]
+LoginInput:
+  type: object
+  additionalProperties: false
+  required: [email, password]
+  properties:
+    email:
+      $ref: common.yaml#/Email
+    password:
+      type: string
+      format: password
+      minLength: 1
+      maxLength: 72
+UsernameAvailability:
+  type: object
+  additionalProperties: false
+  required: [username, available]
+  properties:
+    username:
+      type: string
+      example: enolaholmes
+    available:
+      type: boolean
+    reason:
+      type: string
+      description: Only when not available
+      enum: [taken, invalid, reserved]
+ForgotPasswordInput:
+  type: object
+  additionalProperties: false
+  required: [email]
+  properties:
+    email:
+      $ref: common.yaml#/Email
+ResetPasswordInput:
+  type: object
+  additionalProperties: false
+  required: [token, password]
+  properties:
+    token:
+      type: string
+      minLength: 20
+      maxLength: 200
+      description: Token from the reset link in the email
+    password:
+      $ref: common.yaml#/Password
+ChangePasswordInput:
+  type: object
+  additionalProperties: false
+  required: [currentPassword, newPassword]
+  properties:
+    currentPassword:
+      type: string
+      format: password
+      minLength: 1
+      maxLength: 72
+    newPassword:
+      $ref: common.yaml#/Password

@@ -1,0 +1,65 @@
+name: playloop
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: >-
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) {
+        rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 5s
+
+  storage:
+    image: rustfs/rustfs:1.0.2
+    environment:
+      RUSTFS_ACCESS_KEY: playloop
+      RUSTFS_SECRET_KEY: playloop-secret
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s -o /dev/null http://localhost:9000/ || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  storage-init:
+    image: amazon/aws-cli:2.38.1
+    depends_on:
+      storage:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: playloop
+      AWS_SECRET_ACCESS_KEY: playloop-secret
+      AWS_DEFAULT_REGION: ap-southeast-1
+      CORS: >-
+        {"CORSRules":[{"AllowedOrigins":["http://localhost:5173"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"]}]}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        set -e
+        s3api() { aws --endpoint-url http://storage:9000 s3api "$$@"; }
+        for b in playloop-local-media playloop-local-builds playloop-local-play; do
+          s3api head-bucket --bucket "$$b" 2>/dev/null || s3api create-bucket --bucket "$$b"
+        done
+        for b in playloop-local-media playloop-local-builds; do
+          s3api put-bucket-cors --bucket "$$b" --cors-configuration "$$CORS"
+        done
+        for b in playloop-local-media playloop-local-play; do
+          s3api put-bucket-policy --bucket "$$b" --policy "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::$$b/*\"]}]}"
+        done
+        echo storage ready
+
+volumes:
+  mongo-data:
+  storage-data:

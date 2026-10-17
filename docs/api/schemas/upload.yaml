@@ -1,0 +1,122 @@
+CreateUploadInput:
+  type: object
+  description: |
+    Limits per purpose (see GET /meta uploadLimits):
+    avatar JPG/PNG ≤ 2 MB; game_media JPG/PNG ≤ 5 MB or MP4 ≤ 100 MB; game_background JPG/PNG ≤ 5 MB;
+    proof_screenshot JPG/PNG ≤ 5 MB; web_build ZIP ≤ 500 MB; download_build ZIP/EXE/DMG/TAR.GZ ≤ 2 GB.
+  additionalProperties: false
+  required: [purpose, fileName, contentType, size]
+  properties:
+    purpose:
+      $ref: enums.yaml#/UploadPurpose
+    fileName:
+      type: string
+      minLength: 1
+      maxLength: 200
+      example: tempest-demo-windows.zip
+    contentType:
+      type: string
+      maxLength: 100
+      example: application/zip
+    size:
+      type: integer
+      minimum: 1
+      maximum: 2147483648
+      description: Bytes
+      example: 16777216
+    gameId:
+      $ref: common.yaml#/ObjectId
+    reviewId:
+      $ref: common.yaml#/ObjectId
+UploadPart:
+  type: object
+  additionalProperties: false
+  required: [partNumber, url]
+  properties:
+    partNumber:
+      type: integer
+      minimum: 1
+    url:
+      type: string
+      format: uri
+UploadTicket:
+  type: object
+  description: |
+    single: PUT the file to url with the given headers.
+    multipart: PUT each slice of partSize bytes to its part url, keep each ETag response header, then call complete.
+  additionalProperties: false
+  required: [id, purpose, method, expiresAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    purpose:
+      $ref: enums.yaml#/UploadPurpose
+    method:
+      type: string
+      enum: [single, multipart]
+    url:
+      type: string
+      format: uri
+      description: Only for single
+    headers:
+      type: object
+      description: Headers to send with the PUT (single only)
+      additionalProperties:
+        type: string
+      example:
+        Content-Type: image/png
+    partSize:
+      type: integer
+      description: Only for multipart
+      example: 52428800
+    parts:
+      type: array
+      description: Only for multipart
+      items:
+        $ref: '#/UploadPart'
+    expiresAt:
+      $ref: common.yaml#/Timestamp
+CompleteUploadInput:
+  type: object
+  additionalProperties: false
+  properties:
+    parts:
+      type: array
+      description: Required for multipart uploads
+      maxItems: 10000
+      items:
+        type: object
+        additionalProperties: false
+        required: [partNumber, etag]
+        properties:
+          partNumber:
+            type: integer
+            minimum: 1
+          etag:
+            type: string
+            maxLength: 100
+Upload:
+  type: object
+  additionalProperties: false
+  required: [id, purpose, status, fileName, contentType, size, url, createdAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    purpose:
+      $ref: enums.yaml#/UploadPurpose
+    status:
+      type: string
+      enum: [pending, uploaded]
+    fileName:
+      type: string
+    contentType:
+      type: string
+    size:
+      type: integer
+    url:
+      type: string
+      format: uri
+      nullable: true
+      description: Public URL for images and videos. null for builds and proof screenshots.
+    createdAt:
+      $ref: common.yaml#/Timestamp

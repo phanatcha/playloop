@@ -1,0 +1,28 @@
+buildStatus:
+  post:
+    tags: [Internal]
+    operationId: setBuildStatus
+    summary: Called by the build-unzip Lambda when a web build is ready or failed
+    description: |
+      Not for the browser. The body is signed with HMAC-SHA256 using INTERNAL_WEBHOOK_SECRET,
+      sent as hex in X-PlayLoop-Signature. Calling it again with the same status does nothing.
+      Notifies the game owner.
+    security:
+      - internalSignature: []
+    parameters:
+      - $ref: ../parameters.yaml#/BuildId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/game.yaml#/BuildStatusInput
+    responses:
+      '204':
+        description: Status recorded
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound

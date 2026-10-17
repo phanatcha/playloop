@@ -1,0 +1,10 @@
+apis:
+  playloop:
+    root: docs/api/openapi.yaml
+    output: docs/api/dist/openapi.bundled.yaml
+
+extends:
+  - recommended
+
+rules:
+  info-license: off

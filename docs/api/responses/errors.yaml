@@ -1,0 +1,66 @@
+ValidationError:
+  description: The request body, query or path is invalid
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: VALIDATION_ERROR
+        message: Some fields are invalid
+        details:
+          - path: /body/title
+            message: must NOT have more than 120 characters
+Unauthorized:
+  description: Not logged in, or the session expired
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: UNAUTHORIZED
+        message: Please log in to continue
+Forbidden:
+  description: Logged in but not allowed to do this
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: FORBIDDEN
+        message: You do not have permission to do this
+NotFound:
+  description: The resource does not exist
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: NOT_FOUND
+        message: Not found
+Conflict:
+  description: The request conflicts with existing data
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: CONFLICT
+        message: username is already taken
+RateLimited:
+  description: Too many requests
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: RATE_LIMITED
+        message: Too many requests, please try again later
+InternalError:
+  description: Unexpected server error
+  content:
+    application/json:
+      schema:
+        $ref: ../schemas/Error.yaml
+      example:
+        code: INTERNAL_ERROR
+        message: Something went wrong, please try again

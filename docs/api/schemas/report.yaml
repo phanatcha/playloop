@@ -1,0 +1,123 @@
+CreateReportInput:
+  type: object
+  additionalProperties: false
+  required: [targetType, targetId, reason]
+  properties:
+    targetType:
+      $ref: enums.yaml#/ReportTargetType
+    targetId:
+      $ref: common.yaml#/ObjectId
+    reason:
+      $ref: enums.yaml#/ReportReason
+    details:
+      type: string
+      maxLength: 500
+Report:
+  type: object
+  additionalProperties: false
+  required: [id, targetType, targetId, reason, details, status, createdAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    targetType:
+      $ref: enums.yaml#/ReportTargetType
+    targetId:
+      $ref: common.yaml#/ObjectId
+    reason:
+      $ref: enums.yaml#/ReportReason
+    details:
+      type: string
+      nullable: true
+    status:
+      $ref: enums.yaml#/ReportStatus
+    createdAt:
+      $ref: common.yaml#/Timestamp
+ReportTarget:
+  type: object
+  additionalProperties: false
+  required: [type, id, preview, hidden, removed, link]
+  properties:
+    type:
+      $ref: enums.yaml#/ReportTargetType
+    id:
+      $ref: common.yaml#/ObjectId
+    preview:
+      type: string
+      description: Title, username or the first part of the text
+    owner:
+      $ref: user.yaml#/UserSummary
+    hidden:
+      type: boolean
+    removed:
+      type: boolean
+    link:
+      type: string
+      description: Client route to the content
+AdminReport:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - reporter
+    - target
+    - reason
+    - details
+    - status
+    - reportCount
+    - createdAt
+    - resolvedAt
+    - resolutionNote
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    reporter:
+      $ref: user.yaml#/UserSummary
+    target:
+      $ref: '#/ReportTarget'
+    reason:
+      $ref: enums.yaml#/ReportReason
+    details:
+      type: string
+      nullable: true
+    status:
+      $ref: enums.yaml#/ReportStatus
+    reportCount:
+      type: integer
+      description: Open reports on the same target
+    createdAt:
+      $ref: common.yaml#/Timestamp
+    resolvedBy:
+      $ref: user.yaml#/UserSummary
+    resolvedAt:
+      type: string
+      format: date-time
+      nullable: true
+    resolutionNote:
+      type: string
+      nullable: true
+AdminReportPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/AdminReport'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+ResolveReportInput:
+  type: object
+  additionalProperties: false
+  required: [status]
+  properties:
+    status:
+      type: string
+      enum: [resolved, dismissed]
+    note:
+      type: string
+      maxLength: 500

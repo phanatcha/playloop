@@ -1,0 +1,144 @@
+replies:
+  get:
+    tags: [Discussions]
+    operationId: listReplies
+    summary: List replies to a review (FR-023)
+    security:
+      - {}
+      - cookieAuth: []
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Replies, oldest first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/discussion.yaml#/ReplyPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  post:
+    tags: [Discussions]
+    operationId: createReply
+    summary: Reply to a submitted review (FR-023)
+    description: Any logged-in user. Notifies the review author and the game owner (except the person replying).
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/discussion.yaml#/ReplyInput
+    responses:
+      '201':
+        description: Reply created
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/discussion.yaml#/Reply
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+reply:
+  patch:
+    tags: [Discussions]
+    operationId: updateReply
+    summary: Edit my reply (FR-003, FR-023)
+    parameters:
+      - $ref: ../parameters.yaml#/ReplyId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/discussion.yaml#/ReplyInput
+    responses:
+      '200':
+        description: Updated reply
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/discussion.yaml#/Reply
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  delete:
+    tags: [Discussions]
+    operationId: deleteReply
+    summary: Delete my reply (FR-003, FR-023)
+    parameters:
+      - $ref: ../parameters.yaml#/ReplyId
+    responses:
+      '204':
+        description: Deleted
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+reaction:
+  put:
+    tags: [Discussions]
+    operationId: addReaction
+    summary: Add an emoji reaction to a review or reply (FR-023)
+    description: Adding the same reaction twice is fine. Each user can add several different emojis.
+    parameters:
+      - $ref: ../parameters.yaml#/ReactionTargetType
+      - $ref: ../parameters.yaml#/ReactionTargetId
+      - $ref: ../parameters.yaml#/Emoji
+    responses:
+      '200':
+        description: Reactions on the target
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/discussion.yaml#/ReactionsResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+  delete:
+    tags: [Discussions]
+    operationId: removeReaction
+    summary: Remove my emoji reaction (FR-023)
+    parameters:
+      - $ref: ../parameters.yaml#/ReactionTargetType
+      - $ref: ../parameters.yaml#/ReactionTargetId
+      - $ref: ../parameters.yaml#/Emoji
+    responses:
+      '200':
+        description: Reactions on the target
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/discussion.yaml#/ReactionsResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound

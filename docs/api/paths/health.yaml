@@ -1,0 +1,15 @@
+health:
+  get:
+    tags: [Health]
+    operationId: getHealth
+    summary: Check API and database status (NFR-002, NFR-015)
+    security: []
+    responses:
+      '200':
+        description: The API is running
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/Health.yaml
+      '500':
+        $ref: ../responses/errors.yaml#/InternalError

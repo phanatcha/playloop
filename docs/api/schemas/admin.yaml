@@ -1,0 +1,298 @@
+AdminStats:
+  type: object
+  additionalProperties: false
+  required: [totals, daily]
+  properties:
+    totals:
+      type: object
+      additionalProperties: false
+      required:
+        - users
+        - suspendedUsers
+        - games
+        - publishedGames
+        - submittedReviews
+        - inProgressReviews
+        - replies
+        - openReports
+      properties:
+        users:
+          type: integer
+        suspendedUsers:
+          type: integer
+        games:
+          type: integer
+        publishedGames:
+          type: integer
+        submittedReviews:
+          type: integer
+        inProgressReviews:
+          type: integer
+        replies:
+          type: integer
+        openReports:
+          type: integer
+    daily:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [date, newUsers, newGames, submittedReviews, reports]
+        properties:
+          date:
+            type: string
+            format: date
+            example: '2026-10-11'
+          newUsers:
+            type: integer
+          newGames:
+            type: integer
+          submittedReviews:
+            type: integer
+          reports:
+            type: integer
+Suspension:
+  type: object
+  additionalProperties: false
+  required: [reason, until, at]
+  properties:
+    reason:
+      type: string
+    until:
+      type: string
+      format: date-time
+      nullable: true
+      description: null means a permanent ban
+    at:
+      $ref: common.yaml#/Timestamp
+    by:
+      $ref: user.yaml#/UserSummary
+AdminUser:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - username
+    - displayName
+    - email
+    - role
+    - status
+    - reputationPoints
+    - stats
+    - openReportCount
+    - createdAt
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    username:
+      $ref: common.yaml#/Username
+    displayName:
+      type: string
+    email:
+      $ref: common.yaml#/Email
+    role:
+      $ref: enums.yaml#/Role
+    status:
+      $ref: enums.yaml#/UserStatus
+    suspension:
+      $ref: '#/Suspension'
+    reputationPoints:
+      type: integer
+    stats:
+      $ref: user.yaml#/UserStats
+    openReportCount:
+      type: integer
+    createdAt:
+      $ref: common.yaml#/Timestamp
+AdminUserPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/AdminUser'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+SuspendInput:
+  type: object
+  additionalProperties: false
+  required: [reason, until]
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 500
+    until:
+      type: string
+      format: date-time
+      nullable: true
+      description: null bans the user permanently
+RoleInput:
+  type: object
+  additionalProperties: false
+  required: [role]
+  properties:
+    role:
+      $ref: enums.yaml#/Role
+ModerationInput:
+  type: object
+  additionalProperties: false
+  required: [reason]
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 500
+      description: Shown to the content owner in a notification
+ModerationResult:
+  type: object
+  additionalProperties: false
+  required: [targetType, targetId, hidden, removed]
+  properties:
+    targetType:
+      $ref: enums.yaml#/ModerationTargetType
+    targetId:
+      $ref: common.yaml#/ObjectId
+    hidden:
+      type: boolean
+    removed:
+      type: boolean
+FeaturedInput:
+  type: object
+  additionalProperties: false
+  required: [gameIds]
+  properties:
+    gameIds:
+      type: array
+      maxItems: 10
+      uniqueItems: true
+      description: Published games in display order
+      items:
+        $ref: common.yaml#/ObjectId
+Genre:
+  type: object
+  additionalProperties: false
+  required: [key, label, active]
+  properties:
+    key:
+      $ref: common.yaml#/GenreKey
+    label:
+      type: string
+      minLength: 1
+      maxLength: 30
+      example: Survival
+    active:
+      type: boolean
+      description: Inactive genres stay on existing games but can't be picked for new ones
+Level:
+  type: object
+  additionalProperties: false
+  required: [level, title, minPoints]
+  properties:
+    level:
+      type: integer
+      minimum: 1
+      example: 4
+    title:
+      type: string
+      minLength: 1
+      maxLength: 30
+      example: Critic
+    minPoints:
+      type: integer
+      minimum: 0
+      example: 700
+BadgeDefinition:
+  type: object
+  additionalProperties: false
+  required: [key, name, description, kind, threshold, active]
+  properties:
+    key:
+      $ref: enums.yaml#/BadgeKey
+    name:
+      type: string
+      minLength: 1
+      maxLength: 40
+    description:
+      type: string
+      minLength: 1
+      maxLength: 120
+    kind:
+      $ref: enums.yaml#/BadgeKind
+    threshold:
+      type: integer
+      minimum: 1
+      nullable: true
+      description: Count needed (achievements) or top-N rank (hall_of_fame). null for reviewer_of_the_month.
+    active:
+      type: boolean
+ReputationPoints:
+  type: object
+  additionalProperties: false
+  required: [helpfulVote, notHelpfulVote, feedbackPlanned, feedbackFixed]
+  properties:
+    helpfulVote:
+      type: integer
+      example: 10
+    notHelpfulVote:
+      type: integer
+      example: -3
+    feedbackPlanned:
+      type: integer
+      example: 5
+    feedbackFixed:
+      type: integer
+      example: 15
+Config:
+  type: object
+  description: Settings admins can change without a deploy. Point changes apply to new events only.
+  additionalProperties: false
+  required: [genres, levels, badges, reputationPoints, updatedAt]
+  properties:
+    genres:
+      type: array
+      items:
+        $ref: '#/Genre'
+    levels:
+      type: array
+      items:
+        $ref: '#/Level'
+    badges:
+      type: array
+      items:
+        $ref: '#/BadgeDefinition'
+    reputationPoints:
+      $ref: '#/ReputationPoints'
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+UpdateConfigInput:
+  type: object
+  description: Each section sent replaces that whole section
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    genres:
+      type: array
+      minItems: 1
+      maxItems: 50
+      items:
+        $ref: '#/Genre'
+    levels:
+      type: array
+      minItems: 1
+      maxItems: 20
+      description: Must start at 0 points and increase
+      items:
+        $ref: '#/Level'
+    badges:
+      type: array
+      items:
+        $ref: '#/BadgeDefinition'
+    reputationPoints:
+      $ref: '#/ReputationPoints'

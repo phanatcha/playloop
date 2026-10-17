@@ -1,0 +1,31 @@
+reports:
+  post:
+    tags: [Reports]
+    operationId: createReport
+    summary: Report a game, review, reply or user, including a broken game link (NFR-004)
+    description: One open report per user per target. You can't report your own content.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/report.yaml#/CreateReportInput
+    responses:
+      '201':
+        description: Report received
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/report.yaml#/Report
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited

@@ -1,0 +1,70 @@
+spin:
+  post:
+    tags: [Roulette]
+    operationId: spinRoulette
+    summary: Pick a random game that matches the preferences (FR-040)
+    description: |
+      Picks a random published game with at least one mission that matches the filters and fits in maxMinutes.
+      Never returns the user's own games, games they already reviewed at the current version, or games in exclude.
+      Returns 404 NO_MATCH when nothing matches.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/roulette.yaml#/SpinInput
+    responses:
+      '200':
+        description: The game the wheel landed on
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/roulette.yaml#/SpinResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        description: NO_MATCH, no game matches the preferences
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/Error.yaml
+            example:
+              code: NO_MATCH
+              message: No game matches your preferences
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+accept:
+  post:
+    tags: [Roulette]
+    operationId: acceptRoulette
+    summary: Accept the game and start its playtest (FR-041)
+    description: Starts a review with origin roulette, the same way as POST /games/{gameId}/reviews. Skip = just spin again.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/roulette.yaml#/AcceptInput
+    responses:
+      '200':
+        description: Existing in-progress review for this game
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Review
+      '201':
+        description: Review started
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Review
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict

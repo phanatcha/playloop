@@ -1,0 +1,376 @@
+QuestionOption:
+  type: object
+  additionalProperties: false
+  required: [id, label]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    label:
+      type: string
+      minLength: 1
+      maxLength: 100
+      example: Challenging
+QuestionTitle:
+  type: string
+  minLength: 1
+  maxLength: 200
+  example: What is your first impression of this game?
+QuestionDescription:
+  type: string
+  maxLength: 500
+  nullable: true
+  example: Based on the screenshots and description, what do you think this game will be like?
+TextQuestion:
+  type: object
+  title: Text question
+  additionalProperties: false
+  required: [id, type, title, required]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    type:
+      type: string
+      enum: [short_answer, paragraph]
+    title:
+      $ref: '#/QuestionTitle'
+    description:
+      $ref: '#/QuestionDescription'
+    required:
+      type: boolean
+    preset:
+      $ref: enums.yaml#/QuestionPreset
+ChoiceQuestion:
+  type: object
+  title: Choice question
+  additionalProperties: false
+  required: [id, type, title, required, options]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    type:
+      type: string
+      enum: [multiple_choice, checkboxes, dropdown]
+    title:
+      $ref: '#/QuestionTitle'
+    description:
+      $ref: '#/QuestionDescription'
+    required:
+      type: boolean
+    preset:
+      $ref: enums.yaml#/QuestionPreset
+    options:
+      type: array
+      minItems: 2
+      maxItems: 20
+      items:
+        $ref: '#/QuestionOption'
+    allowOther:
+      type: boolean
+      description: Adds an "Other" option with a text box. Not allowed for dropdown. Left out means false.
+LinearScaleQuestion:
+  type: object
+  title: Linear scale question
+  additionalProperties: false
+  required: [id, type, title, required, scale]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    type:
+      type: string
+      enum: [linear_scale]
+    title:
+      $ref: '#/QuestionTitle'
+    description:
+      $ref: '#/QuestionDescription'
+    required:
+      type: boolean
+    preset:
+      $ref: enums.yaml#/QuestionPreset
+    scale:
+      type: object
+      additionalProperties: false
+      required: [min, max]
+      properties:
+        min:
+          type: integer
+          enum: [0, 1]
+        max:
+          type: integer
+          minimum: 2
+          maximum: 10
+        minLabel:
+          type: string
+          maxLength: 40
+          nullable: true
+        maxLabel:
+          type: string
+          maxLength: 40
+          nullable: true
+RatingQuestion:
+  type: object
+  title: Rating question
+  additionalProperties: false
+  required: [id, type, title, required, rating]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    type:
+      type: string
+      enum: [rating]
+    title:
+      $ref: '#/QuestionTitle'
+    description:
+      $ref: '#/QuestionDescription'
+    required:
+      type: boolean
+    preset:
+      $ref: enums.yaml#/QuestionPreset
+    rating:
+      type: object
+      additionalProperties: false
+      required: [max, icon]
+      properties:
+        max:
+          type: integer
+          minimum: 3
+          maximum: 10
+        icon:
+          type: string
+          enum: [star, heart, thumb]
+SliderQuestion:
+  type: object
+  title: Slider question
+  description: Labelled slider, like the default "How excited are you to play this game?"
+  additionalProperties: false
+  required: [id, type, title, required, slider]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    type:
+      type: string
+      enum: [slider]
+    title:
+      $ref: '#/QuestionTitle'
+    description:
+      $ref: '#/QuestionDescription'
+    required:
+      type: boolean
+    preset:
+      $ref: enums.yaml#/QuestionPreset
+    slider:
+      type: object
+      additionalProperties: false
+      required: [min, max, step]
+      properties:
+        min:
+          type: integer
+          example: 1
+        max:
+          type: integer
+          example: 5
+        step:
+          type: integer
+          minimum: 1
+          example: 1
+        minLabel:
+          type: string
+          maxLength: 40
+          nullable: true
+          example: Not at all
+        maxLabel:
+          type: string
+          maxLength: 40
+          nullable: true
+          example: Can't wait
+        valueLabels:
+          type: array
+          maxItems: 11
+          description: Optional label for each value from min to max, shown in the bubble
+          items:
+            type: string
+            maxLength: 40
+          example: [Not excited, A little, Curious, Very excited, Can't wait]
+GridQuestion:
+  type: object
+  title: Grid question
+  additionalProperties: false
+  required: [id, type, title, required, grid]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    type:
+      type: string
+      enum: [multiple_choice_grid, checkbox_grid]
+    title:
+      $ref: '#/QuestionTitle'
+    description:
+      $ref: '#/QuestionDescription'
+    required:
+      type: boolean
+    preset:
+      $ref: enums.yaml#/QuestionPreset
+    grid:
+      type: object
+      additionalProperties: false
+      required: [rows, columns]
+      properties:
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/QuestionOption'
+        columns:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items:
+            $ref: '#/QuestionOption'
+Question:
+  description: |
+    A question in the PlayLoop form. The shape depends on `type`, like Google Forms.
+    Ids are generated by the client and must be unique inside the form.
+  oneOf:
+    - $ref: '#/TextQuestion'
+    - $ref: '#/ChoiceQuestion'
+    - $ref: '#/LinearScaleQuestion'
+    - $ref: '#/RatingQuestion'
+    - $ref: '#/SliderQuestion'
+    - $ref: '#/GridQuestion'
+Mission:
+  type: object
+  description: A testing objective (FR-012)
+  additionalProperties: false
+  required: [id, title, minutes]
+  properties:
+    id:
+      $ref: common.yaml#/ClientId
+    title:
+      type: string
+      minLength: 1
+      maxLength: 160
+      example: Find the crash site radio
+    minutes:
+      type: integer
+      minimum: 1
+      maximum: 600
+      example: 5
+FirstImpressionSection:
+  type: object
+  additionalProperties: false
+  required: [questions]
+  properties:
+    questions:
+      type: array
+      maxItems: 20
+      items:
+        $ref: '#/Question'
+PlaytestSection:
+  type: object
+  additionalProperties: false
+  required: [missions, knownIssues, questions]
+  properties:
+    missions:
+      type: array
+      maxItems: 10
+      description: At least one mission is needed to publish
+      items:
+        $ref: '#/Mission'
+    knownIssues:
+      type: array
+      maxItems: 20
+      items:
+        type: string
+        minLength: 1
+        maxLength: 200
+      example: [Rain clips through the shelter roof.]
+    questions:
+      type: array
+      maxItems: 20
+      description: Developer's questions, answered after the missions
+      items:
+        $ref: '#/Question'
+FinalVerdictSection:
+  type: object
+  additionalProperties: false
+  required: [farewellMessage]
+  properties:
+    farewellMessage:
+      type: string
+      maxLength: 500
+      nullable: true
+      example: Thanks for surviving the storm with us! Every note you left goes straight into our next build.
+PlayLoopForm:
+  type: object
+  description: The per-game form with three tabs. New games start with the five default First Impression questions.
+  additionalProperties: false
+  required: [gameId, revision, firstImpression, playtest, finalVerdict, estimatedMinutes, updatedAt]
+  properties:
+    gameId:
+      $ref: common.yaml#/ObjectId
+    revision:
+      type: integer
+      minimum: 1
+      description: Increases on every save. Reviews keep the revision they started with.
+    firstImpression:
+      $ref: '#/FirstImpressionSection'
+    playtest:
+      $ref: '#/PlaytestSection'
+    finalVerdict:
+      $ref: '#/FinalVerdictSection'
+    estimatedMinutes:
+      type: integer
+      description: Sum of mission minutes
+      example: 30
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+UpdateFormInput:
+  type: object
+  description: Each section sent replaces that whole section. Sections left out are unchanged.
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    firstImpression:
+      $ref: '#/FirstImpressionSection'
+    playtest:
+      $ref: '#/PlaytestSection'
+    finalVerdict:
+      $ref: '#/FinalVerdictSection'
+Answer:
+  type: object
+  description: |
+    Answer to one question. Which field is used depends on the question type:
+    short_answer, paragraph → text; multiple_choice, dropdown → optionId or other;
+    checkboxes → optionIds (+ other); linear_scale, rating, slider → number;
+    multiple_choice_grid → grid of rowId → columnId; checkbox_grid → grid of rowId → [columnId].
+  additionalProperties: false
+  required: [questionId]
+  properties:
+    questionId:
+      $ref: common.yaml#/ClientId
+    text:
+      type: string
+      maxLength: 5000
+    optionId:
+      $ref: common.yaml#/ClientId
+    optionIds:
+      type: array
+      maxItems: 20
+      uniqueItems: true
+      items:
+        $ref: common.yaml#/ClientId
+    other:
+      type: string
+      maxLength: 200
+    number:
+      type: number
+    grid:
+      type: object
+      maxProperties: 10
+      additionalProperties:
+        anyOf:
+          - $ref: common.yaml#/ClientId
+          - type: array
+            maxItems: 10
+            items:
+              $ref: common.yaml#/ClientId

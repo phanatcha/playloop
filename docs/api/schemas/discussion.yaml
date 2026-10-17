@@ -1,0 +1,91 @@
+ReactionSummary:
+  type: object
+  additionalProperties: false
+  required: [emoji, count, reactedByMe]
+  properties:
+    emoji:
+      $ref: enums.yaml#/ReactionEmoji
+    count:
+      type: integer
+      minimum: 1
+      example: 5
+    reactedByMe:
+      type: boolean
+ReactionsResult:
+  type: object
+  additionalProperties: false
+  required: [targetType, targetId, reactions]
+  properties:
+    targetType:
+      $ref: enums.yaml#/ReactionTargetType
+    targetId:
+      $ref: common.yaml#/ObjectId
+    reactions:
+      type: array
+      items:
+        $ref: '#/ReactionSummary'
+Reply:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - reviewId
+    - author
+    - isGameOwner
+    - isReviewAuthor
+    - body
+    - edited
+    - reactions
+    - createdAt
+    - updatedAt
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    reviewId:
+      $ref: common.yaml#/ObjectId
+    author:
+      $ref: user.yaml#/UserSummary
+    isGameOwner:
+      type: boolean
+      description: The author is the game's developer
+    isReviewAuthor:
+      type: boolean
+      description: The author wrote the review
+    body:
+      type: string
+      example: Thanks! The facility entrances get markers in 0.2.
+    edited:
+      type: boolean
+    reactions:
+      type: array
+      items:
+        $ref: '#/ReactionSummary'
+    createdAt:
+      $ref: common.yaml#/Timestamp
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+ReplyInput:
+  type: object
+  additionalProperties: false
+  required: [body]
+  properties:
+    body:
+      type: string
+      minLength: 1
+      maxLength: 1000
+ReplyPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      description: Oldest first
+      items:
+        $ref: '#/Reply'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total

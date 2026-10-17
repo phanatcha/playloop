@@ -1,0 +1,632 @@
+Card:
+  type: object
+  description: Reaction card added while playing (FR-021). Cards are returned in the order recorded.
+  additionalProperties: false
+  required: [id, type, missionId, comment, playedSeconds, createdAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    type:
+      $ref: enums.yaml#/CardType
+    missionId:
+      $ref: common.yaml#/ClientId
+    comment:
+      type: string
+      example: Found the radio fast. The lightning flash is great.
+    playedSeconds:
+      type: integer
+      minimum: 0
+      description: Playtime when the card was added
+      example: 492
+    createdAt:
+      $ref: common.yaml#/Timestamp
+CardInput:
+  type: object
+  additionalProperties: false
+  required: [type, missionId, comment, playedSeconds]
+  properties:
+    type:
+      $ref: enums.yaml#/CardType
+    missionId:
+      $ref: common.yaml#/ClientId
+    comment:
+      type: string
+      minLength: 1
+      maxLength: 500
+    playedSeconds:
+      type: integer
+      minimum: 0
+      maximum: 86400
+UpdateCardInput:
+  type: object
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    type:
+      $ref: enums.yaml#/CardType
+    comment:
+      type: string
+      minLength: 1
+      maxLength: 500
+FirstImpressionStage:
+  type: object
+  additionalProperties: false
+  required: [answers]
+  properties:
+    answers:
+      type: array
+      items:
+        $ref: form.yaml#/Answer
+    completedAt:
+      $ref: common.yaml#/Timestamp
+PlaytestStage:
+  type: object
+  additionalProperties: false
+  required: [acceptedMissionIds, cards, playedSeconds, proofScreenshotUrl]
+  properties:
+    acceptedMissionIds:
+      type: array
+      items:
+        $ref: common.yaml#/ClientId
+    cards:
+      type: array
+      items:
+        $ref: '#/Card'
+    playedSeconds:
+      type: integer
+      minimum: 0
+      example: 2280
+    proofScreenshotUrl:
+      type: string
+      format: uri
+      nullable: true
+      description: End-of-game screenshot (download builds). Only visible to the reviewer and the game owner.
+    completedAt:
+      $ref: common.yaml#/Timestamp
+DeveloperAnswersStage:
+  type: object
+  additionalProperties: false
+  required: [answers]
+  properties:
+    answers:
+      type: array
+      items:
+        $ref: form.yaml#/Answer
+    completedAt:
+      $ref: common.yaml#/Timestamp
+FinalVerdictStage:
+  type: object
+  description: Fields appear once answered (FR-022)
+  additionalProperties: false
+  properties:
+    comparison:
+      $ref: enums.yaml#/Comparison
+    changeText:
+      type: string
+      example: It's slower than I expected, but exploring the island was the best part.
+    actualDifficulty:
+      $ref: enums.yaml#/DifficultyLevel
+    actualStrength:
+      $ref: enums.yaml#/Strength
+    actualAudience:
+      $ref: enums.yaml#/Audience
+    enjoyment:
+      type: integer
+      minimum: 1
+      maximum: 5
+    improveCategory:
+      $ref: enums.yaml#/ImproveCategory
+    improveOther:
+      type: string
+      description: Only when improveCategory is other
+    improveText:
+      type: string
+      example: Mark the facility entrances so they're easier to spot.
+    completedAt:
+      $ref: common.yaml#/Timestamp
+Expectations:
+  type: object
+  description: The reviewer's First Impression answers to the comparable default questions. A field is missing when the developer removed or changed that question.
+  additionalProperties: false
+  properties:
+    impressionText:
+      type: string
+    difficulty:
+      $ref: enums.yaml#/DifficultyLevel
+    strength:
+      $ref: enums.yaml#/Strength
+    audience:
+      $ref: enums.yaml#/Audience
+FormSnapshot:
+  type: object
+  description: Copy of the PlayLoop form taken when the review started
+  additionalProperties: false
+  required: [revision, firstImpression, playtest, finalVerdict]
+  properties:
+    revision:
+      type: integer
+    firstImpression:
+      $ref: form.yaml#/FirstImpressionSection
+    playtest:
+      $ref: form.yaml#/PlaytestSection
+    finalVerdict:
+      $ref: form.yaml#/FinalVerdictSection
+DownloadOption:
+  type: object
+  additionalProperties: false
+  required: [buildId, target, fileName, size, version]
+  properties:
+    buildId:
+      $ref: common.yaml#/ObjectId
+    target:
+      type: string
+      enum: [windows, mac, linux]
+    fileName:
+      type: string
+      example: tempest-demo-windows.zip
+    size:
+      type: integer
+      example: 16777216
+    version:
+      type: string
+      example: '0.1'
+ReviewGame:
+  type: object
+  description: What the review pages need to show the game
+  additionalProperties: false
+  required:
+    [id, title, pitch, genres, coverUrl, theme, controls, owner, deleted, webPlayUrl, downloads]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    title:
+      type: string
+    pitch:
+      type: string
+    genres:
+      type: array
+      items:
+        $ref: common.yaml#/GenreKey
+    coverUrl:
+      type: string
+      format: uri
+      nullable: true
+    theme:
+      $ref: game.yaml#/Theme
+    controls:
+      type: array
+      items:
+        $ref: game.yaml#/Control
+    owner:
+      $ref: user.yaml#/UserSummary
+    deleted:
+      type: boolean
+    webPlayUrl:
+      type: string
+      format: uri
+      nullable: true
+      description: For web delivery. Load in a sandboxed iframe.
+    downloads:
+      type: array
+      description: For download delivery, one per available OS
+      items:
+        $ref: '#/DownloadOption'
+CardCounts:
+  type: object
+  additionalProperties: false
+  required: [confused, enjoyed, bug]
+  properties:
+    confused:
+      type: integer
+    enjoyed:
+      type: integer
+    bug:
+      type: integer
+Review:
+  type: object
+  description: |
+    A review with all three stages (FR-020, FR-021, FR-022). In-progress reviews are only visible to the reviewer.
+    Submitted reviews cannot be edited.
+  additionalProperties: false
+  required:
+    - id
+    - status
+    - origin
+    - gameVersion
+    - deliveryMethod
+    - currentStep
+    - reviewer
+    - game
+    - form
+    - firstImpression
+    - playtest
+    - developerAnswers
+    - finalVerdict
+    - expectations
+    - feedbackStatus
+    - helpfulCount
+    - notHelpfulCount
+    - myVote
+    - replyCount
+    - reactions
+    - isReviewer
+    - isGameOwner
+    - createdAt
+    - updatedAt
+    - submittedAt
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    status:
+      $ref: enums.yaml#/ReviewStatus
+    origin:
+      $ref: enums.yaml#/ReviewOrigin
+    gameVersion:
+      type: string
+      example: '0.1'
+    deliveryMethod:
+      $ref: enums.yaml#/DeliveryMethod
+    currentStep:
+      $ref: enums.yaml#/ReviewStep
+    reviewer:
+      $ref: user.yaml#/UserSummary
+    game:
+      $ref: '#/ReviewGame'
+    form:
+      $ref: '#/FormSnapshot'
+    firstImpression:
+      $ref: '#/FirstImpressionStage'
+    playtest:
+      $ref: '#/PlaytestStage'
+    developerAnswers:
+      $ref: '#/DeveloperAnswersStage'
+    finalVerdict:
+      $ref: '#/FinalVerdictStage'
+    expectations:
+      $ref: '#/Expectations'
+    feedbackStatus:
+      $ref: enums.yaml#/FeedbackStatus
+    helpfulCount:
+      type: integer
+    notHelpfulCount:
+      type: integer
+    myVote:
+      type: integer
+      nullable: true
+      enum: [1, -1, null]
+    replyCount:
+      type: integer
+    reactions:
+      type: array
+      items:
+        $ref: discussion.yaml#/ReactionSummary
+    isReviewer:
+      type: boolean
+    isGameOwner:
+      type: boolean
+    createdAt:
+      $ref: common.yaml#/Timestamp
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+    submittedAt:
+      type: string
+      format: date-time
+      nullable: true
+FirstImpressionInput:
+  type: object
+  description: Saves the answers so far. complete=true checks required questions and marks the stage done (Let's Play).
+  additionalProperties: false
+  required: [answers]
+  properties:
+    answers:
+      type: array
+      maxItems: 20
+      items:
+        $ref: form.yaml#/Answer
+    complete:
+      type: boolean
+      default: false
+PlaytestInput:
+  type: object
+  description: complete=true needs every mission accepted, and an end-of-game screenshot for download builds.
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    playedSeconds:
+      type: integer
+      minimum: 0
+      maximum: 86400
+    proofUploadId:
+      type: string
+      pattern: '^[a-f0-9]{24}$'
+      nullable: true
+      description: A completed proof_screenshot upload. null removes it.
+    complete:
+      type: boolean
+      default: false
+DeveloperAnswersInput:
+  type: object
+  additionalProperties: false
+  required: [answers]
+  properties:
+    answers:
+      type: array
+      maxItems: 20
+      items:
+        $ref: form.yaml#/Answer
+    complete:
+      type: boolean
+      default: false
+FinalVerdictInput:
+  type: object
+  description: Partial save per step. complete=true checks the required fields (comparison, changeText, enjoyment, improveCategory, improveText).
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    comparison:
+      $ref: enums.yaml#/Comparison
+    changeText:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    actualDifficulty:
+      $ref: enums.yaml#/DifficultyLevel
+    actualStrength:
+      $ref: enums.yaml#/Strength
+    actualAudience:
+      $ref: enums.yaml#/Audience
+    enjoyment:
+      type: integer
+      minimum: 1
+      maximum: 5
+    improveCategory:
+      $ref: enums.yaml#/ImproveCategory
+    improveOther:
+      type: string
+      minLength: 1
+      maxLength: 60
+    improveText:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    complete:
+      type: boolean
+      default: false
+ReviewCard:
+  type: object
+  description: A submitted review in the Reviews & Discussion list
+  additionalProperties: false
+  required:
+    - id
+    - reviewer
+    - gameVersion
+    - submittedAt
+    - cardCounts
+    - finalVerdict
+    - feedbackStatus
+    - helpfulCount
+    - notHelpfulCount
+    - myVote
+    - replyCount
+    - reactions
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    reviewer:
+      $ref: user.yaml#/UserSummary
+    gameVersion:
+      type: string
+    submittedAt:
+      $ref: common.yaml#/Timestamp
+    cardCounts:
+      $ref: '#/CardCounts'
+    finalVerdict:
+      $ref: '#/FinalVerdictStage'
+    feedbackStatus:
+      $ref: enums.yaml#/FeedbackStatus
+    helpfulCount:
+      type: integer
+      example: 18
+    notHelpfulCount:
+      type: integer
+      example: 2
+    myVote:
+      type: integer
+      nullable: true
+      enum: [1, -1, null]
+    replyCount:
+      type: integer
+      example: 4
+    reactions:
+      type: array
+      items:
+        $ref: discussion.yaml#/ReactionSummary
+ReviewCardPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/ReviewCard'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+MyReviewItem:
+  type: object
+  additionalProperties: false
+  required:
+    [id, status, origin, game, gameVersion, currentStep, helpfulCount, updatedAt, submittedAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    status:
+      $ref: enums.yaml#/ReviewStatus
+    origin:
+      $ref: enums.yaml#/ReviewOrigin
+    game:
+      $ref: game.yaml#/GameRef
+    gameVersion:
+      type: string
+    currentStep:
+      $ref: enums.yaml#/ReviewStep
+    helpfulCount:
+      type: integer
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+    submittedAt:
+      type: string
+      format: date-time
+      nullable: true
+MyReviewPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/MyReviewItem'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+ProfileReviewItem:
+  type: object
+  description: A submitted review on a public profile
+  additionalProperties: false
+  required: [id, game, excerpt, helpfulCount, submittedAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    game:
+      $ref: game.yaml#/GameRef
+    excerpt:
+      type: string
+      description: Start of the Final Verdict "how did your impression change" answer
+      example: The island routes make exploration feel rewarding.
+    helpfulCount:
+      type: integer
+      example: 18
+    submittedAt:
+      $ref: common.yaml#/Timestamp
+ProfileReviewPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/ProfileReviewItem'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+FeedbackItem:
+  type: object
+  description: A review in the developer's Feedback Inbox list
+  additionalProperties: false
+  required: [id, reviewer, gameVersion, excerpt, playedSeconds, feedbackStatus, submittedAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    reviewer:
+      $ref: user.yaml#/UserSummary
+    gameVersion:
+      type: string
+    excerpt:
+      type: string
+      example: Froze when lightning hit the tower. Loved exploring the island.
+    playedSeconds:
+      type: integer
+      example: 2280
+    feedbackStatus:
+      $ref: enums.yaml#/FeedbackStatus
+    submittedAt:
+      $ref: common.yaml#/Timestamp
+FeedbackPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total, counts]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/FeedbackItem'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+    counts:
+      type: object
+      additionalProperties: false
+      required: [all, new, reviewed, planned, fixed]
+      properties:
+        all:
+          type: integer
+          example: 12
+        new:
+          type: integer
+          example: 3
+        reviewed:
+          type: integer
+          example: 4
+        planned:
+          type: integer
+          example: 3
+        fixed:
+          type: integer
+          example: 2
+FeedbackStatusInput:
+  type: object
+  additionalProperties: false
+  required: [status]
+  properties:
+    status:
+      $ref: enums.yaml#/FeedbackStatus
+FeedbackStatusResult:
+  type: object
+  additionalProperties: false
+  required: [reviewId, feedbackStatus, updatedAt]
+  properties:
+    reviewId:
+      $ref: common.yaml#/ObjectId
+    feedbackStatus:
+      $ref: enums.yaml#/FeedbackStatus
+    updatedAt:
+      $ref: common.yaml#/Timestamp
+VoteInput:
+  type: object
+  additionalProperties: false
+  required: [value]
+  properties:
+    value:
+      type: integer
+      enum: [1, -1]
+      description: 1 = helpful, -1 = not helpful
+VoteResult:
+  type: object
+  additionalProperties: false
+  required: [reviewId, helpfulCount, notHelpfulCount, myVote]
+  properties:
+    reviewId:
+      $ref: common.yaml#/ObjectId
+    helpfulCount:
+      type: integer
+    notHelpfulCount:
+      type: integer
+    myVote:
+      type: integer
+      nullable: true
+      enum: [1, -1, null]

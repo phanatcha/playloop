@@ -1,0 +1,118 @@
+Platform:
+  type: string
+  enum: [web, pc, mac, mobile]
+BuildStage:
+  type: string
+  enum: [prototype, alpha, beta, demo]
+Engine:
+  type: string
+  enum: [unity, unreal, godot, gamemaker, other]
+GameStatus:
+  type: string
+  enum: [draft, published]
+DeliveryMethod:
+  type: string
+  description: web = played inside the page, download = reviewer downloads a build
+  enum: [web, download]
+BuildTarget:
+  type: string
+  enum: [web, windows, mac, linux]
+BuildStatus:
+  type: string
+  description: Web builds start as processing while the zip is extracted. Download builds are ready at once.
+  enum: [processing, ready, failed]
+BackgroundPreset:
+  type: string
+  enum: [sky, storm, overcast, night]
+QuestionPreset:
+  type: string
+  description: Marks a default First Impression question. difficulty, strength and audience feed the Expected vs Actual step of the Final Verdict.
+  enum: [impression, difficulty, strength, audience, excitement]
+CardType:
+  type: string
+  enum: [confused, enjoyed, bug]
+FeedbackStatus:
+  type: string
+  enum: [new, reviewed, planned, fixed]
+ReviewStatus:
+  type: string
+  enum: [in_progress, submitted]
+ReviewOrigin:
+  type: string
+  enum: [browse, roulette]
+ReviewStep:
+  type: string
+  description: The step a reviewer should resume at
+  enum: [first_impression, playtest, developer_questions, final_verdict, summary]
+DifficultyLevel:
+  type: string
+  enum: [easy, moderate, challenging, very_hard]
+Strength:
+  type: string
+  enum: [visuals, gameplay, story, audio, originality]
+Audience:
+  type: string
+  enum: [casual, experienced, everyone, not_sure]
+Comparison:
+  type: string
+  enum: [better, as_expected, worse, different]
+ImproveCategory:
+  type: string
+  enum: [controls, difficulty, bugs, visuals, audio, story, ui, other]
+Role:
+  type: string
+  enum: [user, admin]
+UserStatus:
+  type: string
+  enum: [active, suspended, banned]
+BadgeKey:
+  type: string
+  enum:
+    - first_launch
+    - first_review
+    - thoughtful_critic
+    - helping_hand
+    - bug_hunter
+    - roulette_regular
+    - reviewer_of_the_month
+    - hall_of_fame
+BadgeKind:
+  type: string
+  enum: [achievement, ranking]
+ReactionEmoji:
+  type: string
+  enum: [thumbs_up, heart, laugh, wow, fire, clap]
+ReactionTargetType:
+  type: string
+  enum: [review, reply]
+ReportTargetType:
+  type: string
+  enum: [game, review, reply, user]
+ReportReason:
+  type: string
+  enum: [spam, offensive, inappropriate, cheating, broken_game, other]
+ReportStatus:
+  type: string
+  enum: [open, resolved, dismissed]
+ModerationTargetType:
+  type: string
+  enum: [game, review, reply]
+NotificationType:
+  type: string
+  enum:
+    - review_received
+    - reply_received
+    - feedback_status_changed
+    - badge_awarded
+    - level_up
+    - build_ready
+    - build_failed
+    - content_hidden
+    - content_restored
+UploadPurpose:
+  type: string
+  enum: [avatar, game_media, game_background, proof_screenshot, web_build, download_build]
+RouletteTime:
+  type: integer
+  description: Minutes the reviewer has
+  enum: [15, 30, 60]

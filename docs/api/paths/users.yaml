@@ -1,0 +1,63 @@
+profile:
+  get:
+    tags: [Users]
+    operationId: getProfile
+    summary: Get a public profile with reputation, badges and stats (FR-002, FR-031, FR-032)
+    security:
+      - {}
+      - cookieAuth: []
+    parameters:
+      - $ref: ../parameters.yaml#/Username
+    responses:
+      '200':
+        description: Public profile
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/user.yaml#/PublicProfile
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+userGames:
+  get:
+    tags: [Users]
+    operationId: listUserGames
+    summary: List a user's published games (FR-002)
+    security: []
+    parameters:
+      - $ref: ../parameters.yaml#/Username
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Published games, newest first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameCardPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+userReviews:
+  get:
+    tags: [Users]
+    operationId: listUserReviews
+    summary: List a user's submitted reviews (FR-002)
+    security: []
+    parameters:
+      - $ref: ../parameters.yaml#/Username
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Submitted reviews, newest first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/ProfileReviewPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound

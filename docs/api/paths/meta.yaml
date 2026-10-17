@@ -1,0 +1,45 @@
+meta:
+  get:
+    tags: [Meta]
+    operationId: getMeta
+    summary: Option lists, levels, badges and upload limits for the client
+    security: []
+    responses:
+      '200':
+        description: Meta
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/meta.yaml#/Meta
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+leaderboard:
+  get:
+    tags: [Reputation]
+    operationId: getLeaderboard
+    summary: Top reviewers, all time or this month (FR-031, FR-032)
+    description: The all-time top 10 hold the Hall of Fame badge.
+    security: []
+    parameters:
+      - name: period
+        in: query
+        schema:
+          type: string
+          enum: [all_time, month]
+          default: all_time
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+    responses:
+      '200':
+        description: Leaderboard
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/meta.yaml#/Leaderboard
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError

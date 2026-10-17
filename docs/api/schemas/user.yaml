@@ -1,0 +1,259 @@
+UserSummary:
+  type: object
+  description: Small author card used inside other resources
+  additionalProperties: false
+  required: [id, username, displayName, avatarUrl, level, levelTitle]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    username:
+      $ref: common.yaml#/Username
+    displayName:
+      type: string
+      example: Enola
+    avatarUrl:
+      type: string
+      format: uri
+      nullable: true
+    level:
+      type: integer
+      minimum: 1
+      example: 4
+    levelTitle:
+      type: string
+      example: Critic
+Link:
+  type: object
+  additionalProperties: false
+  required: [label, url]
+  properties:
+    label:
+      type: string
+      minLength: 1
+      maxLength: 30
+      example: Website
+    url:
+      $ref: common.yaml#/HttpUrl
+Reputation:
+  type: object
+  description: Reviewer reputation (FR-031)
+  additionalProperties: false
+  required: [points, level, title, levelMinPoints, nextLevelMinPoints]
+  properties:
+    points:
+      type: integer
+      minimum: 0
+      example: 1240
+    level:
+      type: integer
+      minimum: 1
+      example: 4
+    title:
+      type: string
+      example: Critic
+    levelMinPoints:
+      type: integer
+      example: 700
+    nextLevelMinPoints:
+      type: integer
+      nullable: true
+      description: null at the highest level
+      example: 1500
+UserBadge:
+  type: object
+  additionalProperties: false
+  required: [key, name, description, kind]
+  properties:
+    key:
+      $ref: enums.yaml#/BadgeKey
+    name:
+      type: string
+      example: Thoughtful Critic
+    description:
+      type: string
+      example: Submitted 10 reviews
+    kind:
+      $ref: enums.yaml#/BadgeKind
+    awardedAt:
+      $ref: common.yaml#/Timestamp
+    period:
+      type: string
+      description: Month for Reviewer of the Month (YYYY-MM)
+      pattern: '^[0-9]{4}-[0-9]{2}$'
+      example: 2026-09
+UserStats:
+  type: object
+  additionalProperties: false
+  required: [reviewsWritten, gamesPublished, helpfulVotes]
+  properties:
+    reviewsWritten:
+      type: integer
+      example: 12
+    gamesPublished:
+      type: integer
+      example: 3
+    helpfulVotes:
+      type: integer
+      example: 84
+PublicProfile:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - username
+    - displayName
+    - pronouns
+    - bio
+    - avatarUrl
+    - favoriteGenres
+    - platforms
+    - links
+    - joinedAt
+    - reputation
+    - badges
+    - stats
+    - isMe
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    username:
+      $ref: common.yaml#/Username
+    displayName:
+      type: string
+      example: Enola
+    pronouns:
+      type: string
+      nullable: true
+      example: she/her
+    bio:
+      type: string
+      example: Indie dev making stormy games.
+    avatarUrl:
+      type: string
+      format: uri
+      nullable: true
+    favoriteGenres:
+      type: array
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    links:
+      type: array
+      items:
+        $ref: '#/Link'
+    joinedAt:
+      $ref: common.yaml#/Timestamp
+    reputation:
+      $ref: '#/Reputation'
+    badges:
+      type: array
+      items:
+        $ref: '#/UserBadge'
+    stats:
+      $ref: '#/UserStats'
+    isMe:
+      type: boolean
+      description: True when this is the logged-in user's own profile
+Me:
+  type: object
+  description: The logged-in user, including private fields
+  additionalProperties: false
+  required:
+    - id
+    - username
+    - email
+    - role
+    - displayName
+    - pronouns
+    - bio
+    - avatarUrl
+    - favoriteGenres
+    - platforms
+    - links
+    - joinedAt
+    - reputation
+    - badges
+    - stats
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    username:
+      $ref: common.yaml#/Username
+    email:
+      $ref: common.yaml#/Email
+    role:
+      $ref: enums.yaml#/Role
+    displayName:
+      type: string
+    pronouns:
+      type: string
+      nullable: true
+    bio:
+      type: string
+    avatarUrl:
+      type: string
+      format: uri
+      nullable: true
+    favoriteGenres:
+      type: array
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    links:
+      type: array
+      items:
+        $ref: '#/Link'
+    joinedAt:
+      $ref: common.yaml#/Timestamp
+    reputation:
+      $ref: '#/Reputation'
+    badges:
+      type: array
+      items:
+        $ref: '#/UserBadge'
+    stats:
+      $ref: '#/UserStats'
+UpdateMeInput:
+  type: object
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    displayName:
+      type: string
+      minLength: 1
+      maxLength: 40
+    pronouns:
+      type: string
+      maxLength: 20
+      nullable: true
+    bio:
+      type: string
+      maxLength: 200
+    avatarUploadId:
+      type: string
+      pattern: '^[a-f0-9]{24}$'
+      nullable: true
+      description: A completed avatar upload. null removes the photo.
+    favoriteGenres:
+      type: array
+      maxItems: 5
+      uniqueItems: true
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      uniqueItems: true
+      description: Also used as the default platform in Playtest Roulette
+      items:
+        $ref: enums.yaml#/Platform
+    links:
+      type: array
+      maxItems: 5
+      items:
+        $ref: '#/Link'

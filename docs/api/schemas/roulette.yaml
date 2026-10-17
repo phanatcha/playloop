@@ -1,0 +1,93 @@
+SpinInput:
+  type: object
+  description: Leave a field out to allow anything
+  additionalProperties: false
+  properties:
+    genres:
+      type: array
+      maxItems: 10
+      uniqueItems: true
+      items:
+        $ref: common.yaml#/GenreKey
+    platform:
+      $ref: enums.yaml#/Platform
+    buildStage:
+      $ref: enums.yaml#/BuildStage
+    maxMinutes:
+      $ref: enums.yaml#/RouletteTime
+    exclude:
+      type: array
+      maxItems: 50
+      uniqueItems: true
+      description: Game ids skipped earlier in this session
+      items:
+        $ref: common.yaml#/ObjectId
+RouletteGame:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - title
+    - pitch
+    - coverUrl
+    - genres
+    - platforms
+    - buildStage
+    - engine
+    - deliveryMethod
+    - missionCount
+    - estimatedMinutes
+    - owner
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    title:
+      type: string
+      example: Tempest
+    pitch:
+      type: string
+    coverUrl:
+      type: string
+      format: uri
+      nullable: true
+    genres:
+      type: array
+      items:
+        $ref: common.yaml#/GenreKey
+    platforms:
+      type: array
+      items:
+        $ref: enums.yaml#/Platform
+    buildStage:
+      $ref: enums.yaml#/BuildStage
+    engine:
+      $ref: enums.yaml#/Engine
+    deliveryMethod:
+      $ref: enums.yaml#/DeliveryMethod
+    missionCount:
+      type: integer
+      example: 3
+    estimatedMinutes:
+      type: integer
+      example: 30
+    owner:
+      $ref: user.yaml#/UserSummary
+SpinResult:
+  type: object
+  additionalProperties: false
+  required: [spinToken, game]
+  properties:
+    spinToken:
+      type: string
+      description: Signed, short-lived token. Send it to POST /roulette/accept to start the playtest.
+    game:
+      $ref: '#/RouletteGame'
+AcceptInput:
+  type: object
+  additionalProperties: false
+  required: [spinToken]
+  properties:
+    spinToken:
+      type: string
+      minLength: 10
+      maxLength: 1000

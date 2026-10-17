@@ -1,0 +1,64 @@
+uploads:
+  post:
+    tags: [Uploads]
+    operationId: createUpload
+    summary: Get presigned URLs to upload a file straight to S3 (NFR-007)
+    description: |
+      Checks the file type and size for the purpose. gameId is required for game_media, game_background,
+      web_build and download_build (owner only). reviewId is required for proof_screenshot (reviewer only).
+      Files larger than 100 MB use multipart upload. Pending uploads expire after 24 hours.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/upload.yaml#/CreateUploadInput
+    responses:
+      '201':
+        description: Where to upload
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/upload.yaml#/UploadTicket
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+completeUpload:
+  post:
+    tags: [Uploads]
+    operationId: completeUpload
+    summary: Confirm an upload finished
+    description: |
+      Uploader only. The server checks the object exists and matches the declared type and size.
+      Then use the upload id in the resource that needs it (avatarUploadId, mediaIds, builds, proofUploadId).
+    parameters:
+      - $ref: ../parameters.yaml#/UploadId
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/upload.yaml#/CompleteUploadInput
+    responses:
+      '200':
+        description: Upload confirmed
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/upload.yaml#/Upload
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict

@@ -1,0 +1,494 @@
+gameReviews:
+  get:
+    tags: [Reviews]
+    operationId: listGameReviews
+    summary: List submitted reviews of a game for Reviews & Discussion (FR-022, FR-024, FR-030)
+    security:
+      - {}
+      - cookieAuth: []
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [helpful, newest]
+          default: helpful
+      - name: version
+        in: query
+        description: Only reviews of this game version
+        schema:
+          type: string
+          maxLength: 20
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Submitted reviews
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/ReviewCardPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  post:
+    tags: [Reviews]
+    operationId: startReview
+    summary: Start or resume a review ("Try our Game!") (FR-020)
+    description: |
+      Snapshots the current PlayLoop form. One review per user per game version.
+      Returns 200 with the existing draft when the user already has one for this version,
+      and 409 when they already submitted one. You cannot review your own game (403).
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    responses:
+      '200':
+        description: Existing in-progress review
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Review
+      '201':
+        description: New review started
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Review
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+review:
+  get:
+    tags: [Reviews]
+    operationId: getReview
+    summary: Get a review with all three stages (FR-022)
+    description: In-progress reviews are only visible to the reviewer. Hidden reviews return 404 except to admins.
+    security:
+      - {}
+      - cookieAuth: []
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    responses:
+      '200':
+        description: Review
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Review
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  delete:
+    tags: [Reviews]
+    operationId: deleteReview
+    summary: Discard a draft or delete a submitted review (FR-003)
+    description: |
+      Reviewer only. Discarding a draft is the "Leave without saving" choice.
+      Deleting a submitted review also removes its votes, replies, and the reputation it earned.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    responses:
+      '204':
+        description: Deleted
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+firstImpression:
+  put:
+    tags: [Reviews]
+    operationId: saveFirstImpression
+    summary: Save First Impression answers (FR-020)
+    description: |
+      Reviewer only, before submit. Send all answers so far each time the reviewer presses Next.
+      complete=true checks required questions and unlocks the playtest (Let's Play).
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/FirstImpressionInput
+    responses:
+      '200':
+        description: Saved stage
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/FirstImpressionStage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+acceptMission:
+  post:
+    tags: [Reviews]
+    operationId: acceptMission
+    summary: Accept a mission on the Playtest page (FR-012, FR-041)
+    description: Reviewer only. Needs a completed First Impression. Every mission must be accepted to finish the playtest.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+      - $ref: ../parameters.yaml#/MissionId
+    responses:
+      '200':
+        description: Playtest stage with the mission accepted
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/PlaytestStage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+cards:
+  post:
+    tags: [Reviews]
+    operationId: addCard
+    summary: Add a reaction card while playing (FR-021)
+    description: Reviewer only, before submit. Saved at once. The mission must be accepted.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/CardInput
+    responses:
+      '201':
+        description: Card added
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Card
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+card:
+  patch:
+    tags: [Reviews]
+    operationId: updateCard
+    summary: Edit a reaction card (FR-021)
+    description: Reviewer only, before submit. The card keeps its place in the order.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+      - $ref: ../parameters.yaml#/CardId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/UpdateCardInput
+    responses:
+      '200':
+        description: Updated card
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Card
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+  delete:
+    tags: [Reviews]
+    operationId: deleteCard
+    summary: Delete a reaction card (FR-021)
+    description: Reviewer only, before submit.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+      - $ref: ../parameters.yaml#/CardId
+    responses:
+      '204':
+        description: Deleted
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+playtest:
+  put:
+    tags: [Reviews]
+    operationId: savePlaytest
+    summary: Save playtime and the end-of-game screenshot, or finish the playtest (FR-021, FR-041)
+    description: |
+      Reviewer only, before submit. complete=true needs every mission accepted and,
+      for download builds, an end-of-game screenshot (Continue).
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/PlaytestInput
+    responses:
+      '200':
+        description: Saved stage
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/PlaytestStage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+developerAnswers:
+  put:
+    tags: [Reviews]
+    operationId: saveDeveloperAnswers
+    summary: Save answers to the developer's questions (FR-012)
+    description: Reviewer only, before submit. Needs a completed playtest. complete=true checks required questions.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/DeveloperAnswersInput
+    responses:
+      '200':
+        description: Saved stage
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/DeveloperAnswersStage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+finalVerdict:
+  put:
+    tags: [Reviews]
+    operationId: saveFinalVerdict
+    summary: Save Final Verdict answers (FR-022)
+    description: |
+      Reviewer only, before submit. Send the fields of each step as the reviewer presses Next; fields left out are kept.
+      Needs the developer's questions answered (or none in the form). complete=true checks the required fields.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/FinalVerdictInput
+    responses:
+      '200':
+        description: Saved stage
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/FinalVerdictStage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+submit:
+  post:
+    tags: [Reviews]
+    operationId: submitReview
+    summary: Submit the review from the Summary page (FR-022, NFR-003)
+    description: |
+      Reviewer only. Needs every stage completed. Runs in one transaction: marks the review submitted,
+      updates counts and badges, and notifies the developer. Submitting twice returns 409. The review can't be edited afterwards.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    responses:
+      '200':
+        description: Submitted review
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/Review
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+feedbackInbox:
+  get:
+    tags: [Feedback]
+    operationId: getFeedbackInbox
+    summary: Feedback Inbox for one game (FR-024)
+    description: Game owner only. Open a review with GET /reviews/{reviewId} to see all stages.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+      - name: status
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/FeedbackStatus
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Submitted reviews with counts per status, newest first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/FeedbackPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+feedbackStatus:
+  put:
+    tags: [Feedback]
+    operationId: setFeedbackStatus
+    summary: Set feedback status New / Reviewed / Planned / Fixed (FR-024)
+    description: |
+      Game owner only (NFR-006). Updates the reviewer's reputation bonus in the same transaction
+      and notifies the reviewer.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/FeedbackStatusInput
+    responses:
+      '200':
+        description: New status
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/FeedbackStatusResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+vote:
+  put:
+    tags: [Votes]
+    operationId: setVote
+    summary: Vote a review helpful or not helpful, or change the vote (FR-030, FR-031)
+    description: |
+      One active vote per user per review (NFR-009). You can't vote on your own review.
+      Reputation and badges update in the same transaction (NFR-003).
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/review.yaml#/VoteInput
+    responses:
+      '200':
+        description: Updated counts
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/VoteResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+  delete:
+    tags: [Votes]
+    operationId: removeVote
+    summary: Remove my vote (FR-030)
+    description: Reverses the reputation change. Removing a vote that doesn't exist is fine.
+    parameters:
+      - $ref: ../parameters.yaml#/ReviewId
+    responses:
+      '200':
+        description: Updated counts
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/VoteResult
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound

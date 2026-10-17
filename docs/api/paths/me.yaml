@@ -1,0 +1,148 @@
+me:
+  get:
+    tags: [Me]
+    operationId: getMe
+    summary: Get the logged-in user (FR-001)
+    description: Use it on app start to know if the user is logged in (401 when not).
+    responses:
+      '200':
+        description: The logged-in user
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/user.yaml#/Me
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+  patch:
+    tags: [Me]
+    operationId: updateMe
+    summary: Edit profile (FR-002)
+    description: Username and badges cannot be changed.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/user.yaml#/UpdateMeInput
+    responses:
+      '200':
+        description: Updated user
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/user.yaml#/Me
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+myGames:
+  get:
+    tags: [Me]
+    operationId: listMyGames
+    summary: List my games, drafts included, for My Games (FR-010)
+    parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/GameStatus
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: My games, most recently updated first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/MyGamesPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+myReviews:
+  get:
+    tags: [Me]
+    operationId: listMyReviews
+    summary: List my reviews, including drafts to resume (FR-020)
+    parameters:
+      - name: status
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/ReviewStatus
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: My reviews, most recently updated first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/review.yaml#/MyReviewPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+notifications:
+  get:
+    tags: [Notifications]
+    operationId: listNotifications
+    summary: List my notifications for the bell
+    parameters:
+      - name: unreadOnly
+        in: query
+        schema:
+          type: boolean
+          default: false
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Notifications, newest first
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/notification.yaml#/NotificationPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+unreadCount:
+  get:
+    tags: [Notifications]
+    operationId: getUnreadCount
+    summary: Count unread notifications for the bell badge
+    description: Poll every 30–60 seconds while the tab is visible.
+    responses:
+      '200':
+        description: Unread count
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/notification.yaml#/UnreadCount
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+readNotification:
+  post:
+    tags: [Notifications]
+    operationId: markNotificationRead
+    summary: Mark one notification as read
+    parameters:
+      - $ref: ../parameters.yaml#/NotificationId
+    responses:
+      '204':
+        description: Marked as read
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+readAllNotifications:
+  post:
+    tags: [Notifications]
+    operationId: markAllNotificationsRead
+    summary: Mark all my notifications as read
+    responses:
+      '204':
+        description: All marked as read
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized

@@ -1,0 +1,7 @@
+{
+  "name": "@playloop/lambda-build-unzip",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Validates and extracts uploaded web build zips into the play bucket"
+}

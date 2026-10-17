@@ -1,0 +1,160 @@
+register:
+  post:
+    tags: [Auth]
+    operationId: register
+    summary: Create an account and log in (FR-001)
+    description: Every account can both publish and review games. Sets the session cookie.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/auth.yaml#/RegisterInput
+    responses:
+      '201':
+        description: Account created and logged in
+        headers:
+          Set-Cookie:
+            $ref: ../headers.yaml#/SetSessionCookie
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/user.yaml#/Me
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+usernameAvailable:
+  get:
+    tags: [Auth]
+    operationId: checkUsername
+    summary: Check if a username is free, for the live check on Sign Up (FR-001)
+    security: []
+    parameters:
+      - name: username
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 40
+    responses:
+      '200':
+        description: Availability
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/auth.yaml#/UsernameAvailability
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+login:
+  post:
+    tags: [Auth]
+    operationId: login
+    summary: Log in with email and password (FR-001, NFR-007)
+    description: |
+      Wrong email or password both return 401 "Email or password is incorrect".
+      Rate-limited per IP and per email. Suspended or banned users get 403 with the reason.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/auth.yaml#/LoginInput
+    responses:
+      '200':
+        description: Logged in
+        headers:
+          Set-Cookie:
+            $ref: ../headers.yaml#/SetSessionCookie
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/user.yaml#/Me
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+logout:
+  post:
+    tags: [Auth]
+    operationId: logout
+    summary: Log out (FR-001)
+    responses:
+      '204':
+        description: Logged out, cookie cleared
+        headers:
+          Set-Cookie:
+            $ref: ../headers.yaml#/ClearSessionCookie
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+forgotPassword:
+  post:
+    tags: [Auth]
+    operationId: forgotPassword
+    summary: Email a password reset link
+    description: Always returns 202, whether or not the email exists. The link expires after 1 hour.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/auth.yaml#/ForgotPasswordInput
+    responses:
+      '202':
+        description: If the account exists, an email is on its way
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+resetPassword:
+  post:
+    tags: [Auth]
+    operationId: resetPassword
+    summary: Set a new password with the token from the reset email
+    description: The token works once. Other sessions stay valid until they expire.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/auth.yaml#/ResetPasswordInput
+    responses:
+      '204':
+        description: Password changed
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited
+password:
+  put:
+    tags: [Auth]
+    operationId: changePassword
+    summary: Change password while logged in (Account Settings)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/auth.yaml#/ChangePasswordInput
+    responses:
+      '204':
+        description: Password changed
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited

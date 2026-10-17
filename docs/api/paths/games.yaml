@@ -1,0 +1,375 @@
+games:
+  get:
+    tags: [Games]
+    operationId: listGames
+    summary: Browse, search and filter published games (FR-011)
+    security: []
+    parameters:
+      - name: search
+        in: query
+        description: Matches the title
+        schema:
+          type: string
+          maxLength: 100
+      - name: genre
+        in: query
+        description: Repeat to match any of several genres
+        schema:
+          type: array
+          maxItems: 10
+          items:
+            $ref: ../schemas/common.yaml#/GenreKey
+      - name: platform
+        in: query
+        description: Repeat to match any of several platforms
+        schema:
+          type: array
+          items:
+            $ref: ../schemas/enums.yaml#/Platform
+      - name: buildStage
+        in: query
+        schema:
+          type: array
+          items:
+            $ref: ../schemas/enums.yaml#/BuildStage
+      - name: sort
+        in: query
+        description: newest = New Releases tab, popular = most submitted reviews in the last 30 days
+        schema:
+          type: string
+          enum: [newest, popular]
+          default: newest
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Matching games
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameCardPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+  post:
+    tags: [Games]
+    operationId: createGame
+    summary: Start a new game as a draft (FR-010)
+    description: Creates the draft with the default PlayLoop form. Fill it in with PATCH, then publish.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/game.yaml#/CreateGameInput
+    responses:
+      '201':
+        description: Draft created
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameDetail
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+game:
+  get:
+    tags: [Games]
+    operationId: getGame
+    summary: Get the game page (FR-010)
+    description: Drafts are only visible to the owner. Deleted games return 404.
+    security:
+      - {}
+      - cookieAuth: []
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    responses:
+      '200':
+        description: Game
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameDetail
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  patch:
+    tags: [Games]
+    operationId: updateGame
+    summary: Edit a game (autosave for drafts, Save Changes when published) (FR-003, FR-010)
+    description: |
+      Owner only. On a published game the result must still meet the publish rules, otherwise 400.
+      Changing version on a published game lets past reviewers review it again.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/game.yaml#/UpdateGameInput
+    responses:
+      '200':
+        description: Updated game
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameDetail
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  delete:
+    tags: [Games]
+    operationId: deleteGame
+    summary: Delete a game (FR-003, FR-010)
+    description: |
+      Owner only. Soft delete: the game disappears from Browse, Roulette and the owner's lists,
+      and its files are cleaned up later. Submitted reviews stay on reviewers' profiles marked as removed,
+      and reputation is kept. In-progress reviews are discarded.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    responses:
+      '204':
+        description: Deleted
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+publish:
+  post:
+    tags: [Games]
+    operationId: publishGame
+    summary: Publish a draft (FR-010, FR-012)
+    description: |
+      Owner only. Needs title, pitch, at least one genre and platform, build stage, version, engine,
+      at least one image, 2–4 core gameplay points, at least one "what's playable" point,
+      at least one mission, and a ready build or web link for the chosen delivery method.
+      Missing items come back as a VALIDATION_ERROR with one detail per item.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    responses:
+      '200':
+        description: Published game
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameDetail
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+unpublish:
+  post:
+    tags: [Games]
+    operationId: unpublishGame
+    summary: Move a published game back to draft (FR-010)
+    description: Owner only. Hides it from Browse and Roulette. Existing reviews stay.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    responses:
+      '200':
+        description: Game is a draft again
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameDetail
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+form:
+  get:
+    tags: [Forms]
+    operationId: getForm
+    summary: Get the PlayLoop form (FR-012)
+    description: Owner only. Reviewers get the form through their review snapshot.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    responses:
+      '200':
+        description: The form
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/form.yaml#/PlayLoopForm
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+  patch:
+    tags: [Forms]
+    operationId: updateForm
+    summary: Save one or more tabs of the PlayLoop form (FR-012)
+    description: |
+      Owner only. Each section sent replaces that section. Reviews already started keep their snapshot.
+      A published game must keep at least one mission.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/form.yaml#/UpdateFormInput
+    responses:
+      '200':
+        description: Saved form
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/form.yaml#/PlayLoopForm
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+builds:
+  post:
+    tags: [Games]
+    operationId: addBuild
+    summary: Attach an uploaded build to a game (FR-010)
+    description: |
+      Owner only. Replaces any existing build for the same target.
+      target web needs a web_build upload and starts as processing until the zip is extracted.
+      target windows, mac or linux needs a download_build upload and is ready at once.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/game.yaml#/CreateBuildInput
+    responses:
+      '201':
+        description: Build attached
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/Build
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+build:
+  delete:
+    tags: [Games]
+    operationId: deleteBuild
+    summary: Remove a build (FR-010)
+    description: Owner only. A published game must keep a build or web link for its delivery method.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+      - $ref: ../parameters.yaml#/BuildId
+    responses:
+      '204':
+        description: Removed
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+      '409':
+        $ref: ../responses/errors.yaml#/Conflict
+buildDownload:
+  get:
+    tags: [Games]
+    operationId: getBuildDownload
+    summary: Get a short-lived download link for a build (NFR-004)
+    description: Logged-in users only, for published games (or the owner). The link expires after 15 minutes.
+    parameters:
+      - $ref: ../parameters.yaml#/GameId
+      - $ref: ../parameters.yaml#/BuildId
+    responses:
+      '200':
+        description: Download link
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/BuildDownload
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '404':
+        $ref: ../responses/errors.yaml#/NotFound
+recommendations:
+  get:
+    tags: [Games]
+    operationId: listRecommendations
+    summary: Recommended games for the Browse sidebar (FR-011)
+    description: |
+      Logged in: games in the user's favourite genres that they haven't reviewed and don't own.
+      Logged out, or no matches: featured games, then popular ones.
+    security:
+      - {}
+      - cookieAuth: []
+    parameters:
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+    responses:
+      '200':
+        description: Recommended games
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameCardList
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+featured:
+  get:
+    tags: [Games]
+    operationId: listFeatured
+    summary: Games picked by admins
+    security: []
+    responses:
+      '200':
+        description: Featured games in display order
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/game.yaml#/GameCardList
+      '429':
+        $ref: ../responses/errors.yaml#/RateLimited

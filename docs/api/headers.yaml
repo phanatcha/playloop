@@ -1,0 +1,10 @@
+SetSessionCookie:
+  description: Session JWT. httpOnly, Secure, SameSite=Lax, Path=/, valid for 7 days.
+  schema:
+    type: string
+    example: playloop_token=eyJhbGciOi...; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Lax
+ClearSessionCookie:
+  description: Expires the session cookie
+  schema:
+    type: string
+    example: playloop_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax

@@ -1,0 +1,7 @@
+{
+  "name": "@playloop/lambda-monthly-badges",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Awards the Reviewer of the Month badge on a monthly schedule"
+}

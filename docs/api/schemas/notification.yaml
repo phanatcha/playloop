@@ -1,0 +1,52 @@
+Notification:
+  type: object
+  additionalProperties: false
+  required: [id, type, read, message, link, createdAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    type:
+      $ref: enums.yaml#/NotificationType
+    read:
+      type: boolean
+    message:
+      type: string
+      example: Enola replied to your review of Tempest
+    link:
+      type: string
+      description: Client route to open
+      example: /games/6530a1f2c4e5b2a1d3f4e5a6/reviews/6530a1f2c4e5b2a1d3f4e5b7
+    actor:
+      $ref: user.yaml#/UserSummary
+    game:
+      $ref: game.yaml#/GameRef
+    reviewId:
+      $ref: common.yaml#/ObjectId
+    createdAt:
+      $ref: common.yaml#/Timestamp
+NotificationPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total, unreadCount]
+  properties:
+    items:
+      type: array
+      description: Newest first
+      items:
+        $ref: '#/Notification'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+    unreadCount:
+      type: integer
+UnreadCount:
+  type: object
+  additionalProperties: false
+  required: [count]
+  properties:
+    count:
+      type: integer
+      example: 2
