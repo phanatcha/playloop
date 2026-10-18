@@ -11,6 +11,7 @@ export default defineConfig({
       LOG_LEVEL: 'silent',
       JWT_SECRET: 'test-secret',
       CLIENT_ORIGIN: 'http://localhost:5173',
+      MEDIA_CDN_URL: 'http://media.test',
     },
   },
 });

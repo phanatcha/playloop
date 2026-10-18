@@ -52,3 +52,4 @@ export const IMPROVE_CATEGORIES = [
 
 export const ROULETTE_TIME_LIMITS = [15, 30, 60];
 export const USER_ROLES = ['user', 'admin'];
+export const USER_STATUSES = ['active', 'suspended', 'banned'];
