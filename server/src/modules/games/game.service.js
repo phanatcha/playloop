@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { ApiError } from '../../utils/ApiError.js';
 import { mediaUrl } from '../../utils/mediaUrl.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
+import { Review } from '../reviews/review.model.js';
 import { Game } from './game.model.js';
 import { defaultForm } from './game.defaults.js';
 import {
@@ -30,7 +31,7 @@ async function findGame(gameId) {
 
 const isOwner = (game, userId) => Boolean(userId) && game.owner._id.equals(userId);
 
-async function findOwnedGame(gameId, userId) {
+export async function findOwnedGame(gameId, userId) {
   const game = await findGame(gameId);
   if (!isOwner(game, userId)) throw ApiError.forbidden();
   return game;
@@ -183,6 +184,19 @@ export async function listMyGames(userId, query) {
       { $group: { _id: '$status', count: { $sum: 1 }, reviews: { $sum: '$reviewCount' } } },
     ]),
   ]);
+  const newCounts = await Review.aggregate([
+    {
+      $match: {
+        game: { $in: items.map((g) => g._id) },
+        status: 'submitted',
+        feedbackStatus: 'new',
+      },
+    },
+    { $group: { _id: '$game', count: { $sum: 1 } } },
+  ]);
+  const newByGame = new Map(newCounts.map((c) => [c._id.toString(), c.count]));
+  for (const game of items) game.$locals.newReviewCount = newByGame.get(game._id.toString()) ?? 0;
+
   const byStatus = Object.fromEntries(groups.map((g) => [g._id, g]));
   const summary = {
     published: byStatus.published?.count ?? 0,
@@ -279,8 +293,7 @@ export function toMyGameItem(game) {
     ...(game.engine && { engine: game.engine }),
     platforms: [...game.platforms],
     reviewCount: game.reviewCount,
-    // shortcut: 0 until reviews exist, then count submitted reviews with feedback status new
-    newReviewCount: 0,
+    newReviewCount: game.$locals.newReviewCount ?? 0,
     updatedAt: game.updatedAt,
   };
 }

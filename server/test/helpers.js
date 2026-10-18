@@ -1,5 +1,6 @@
 import { User } from '../src/modules/users/user.model.js';
 import { Game } from '../src/modules/games/game.model.js';
+import { Review } from '../src/modules/reviews/review.model.js';
 import { defaultForm } from '../src/modules/games/game.defaults.js';
 import { SESSION_COOKIE, signSessionToken } from '../src/middleware/auth.js';
 
@@ -44,6 +45,26 @@ export function createPublishedGame(owner, overrides = {}) {
     delivery: { method: 'web', webUrl: 'https://example.itch.io/tempest' },
     form,
     publishedAt: new Date(),
+    ...overrides,
+  });
+}
+
+export function createSubmittedReview(game, reviewer, overrides = {}) {
+  return Review.create({
+    game: game._id,
+    reviewer: reviewer._id,
+    gameVersion: game.version,
+    deliveryMethod: game.delivery.method,
+    form: {
+      revision: 1,
+      firstImpression: game.form.firstImpression,
+      playtest: game.form.playtest,
+      finalVerdict: game.form.finalVerdict,
+    },
+    status: 'submitted',
+    submittedAt: new Date(),
+    playtest: { playedSeconds: 2280 },
+    finalVerdict: { changeText: 'Froze when lightning hit the tower.' },
     ...overrides,
   });
 }

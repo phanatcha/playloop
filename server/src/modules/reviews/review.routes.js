@@ -6,6 +6,10 @@ export const gameReviewRoutes = Router({ mergeParams: true });
 
 gameReviewRoutes.post('/', requireAuth, controller.startReview);
 
+export const gameFeedbackRoutes = Router({ mergeParams: true });
+
+gameFeedbackRoutes.get('/', requireAuth, controller.getFeedbackInbox);
+
 export const reviewRoutes = Router();
 
 reviewRoutes.get('/:reviewId', optionalAuth, controller.getReview);
@@ -19,6 +23,7 @@ reviewRoutes.put('/:reviewId/playtest', requireAuth, controller.savePlaytest);
 reviewRoutes.put('/:reviewId/developer-answers', requireAuth, controller.saveDeveloperAnswers);
 reviewRoutes.put('/:reviewId/final-verdict', requireAuth, controller.saveFinalVerdict);
 reviewRoutes.post('/:reviewId/submit', requireAuth, controller.submitReview);
+reviewRoutes.put('/:reviewId/feedback-status', requireAuth, controller.setFeedbackStatus);
 
 export const myReviewRoutes = Router();
 
