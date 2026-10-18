@@ -1,3 +1,4 @@
+import { reactionSummaries } from '../discussions/discussion.service.js';
 import * as reviews from './review.service.js';
 
 export async function startReview(req, res) {
@@ -7,7 +8,8 @@ export async function startReview(req, res) {
 
 export async function getReview(req, res) {
   const review = await reviews.getReview(req.params.reviewId, req.user?.id);
-  res.json(reviews.toReview(review, req.user?.id));
+  const reactions = await reactionSummaries('review', [review._id], req.user?.id);
+  res.json(reviews.toReview(review, req.user?.id, reactions.get(review.id)));
 }
 
 export async function deleteReview(req, res) {
@@ -71,7 +73,15 @@ export async function submitReview(req, res) {
 
 export async function listGameReviews(req, res) {
   const result = await reviews.listGameReviews(req.params.gameId, req.user?.id, req.query);
-  res.json({ ...result, items: result.items.map(reviews.toReviewCard) });
+  const reactions = await reactionSummaries(
+    'review',
+    result.items.map((r) => r._id),
+    req.user?.id,
+  );
+  res.json({
+    ...result,
+    items: result.items.map((r) => reviews.toReviewCard(r, reactions.get(r.id))),
+  });
 }
 
 export async function getFeedbackInbox(req, res) {

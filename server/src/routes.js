@@ -7,6 +7,11 @@ import {
   myReviewRoutes,
   reviewRoutes,
 } from './modules/reviews/review.routes.js';
+import {
+  reactionRoutes,
+  replyRoutes,
+  reviewReplyRoutes,
+} from './modules/discussions/discussion.routes.js';
 
 export const routes = Router();
 
@@ -14,6 +19,9 @@ routes.use('/health', healthRoutes);
 routes.use('/games/:gameId/reviews', gameReviewRoutes);
 routes.use('/games/:gameId/feedback', gameFeedbackRoutes);
 routes.use('/games', gameRoutes);
+routes.use('/reviews/:reviewId/replies', reviewReplyRoutes);
 routes.use('/reviews', reviewRoutes);
+routes.use('/replies', replyRoutes);
+routes.use('/reactions', reactionRoutes);
 routes.use('/me/games', myGameRoutes);
 routes.use('/me/reviews', myReviewRoutes);

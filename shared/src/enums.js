@@ -53,3 +53,6 @@ export const IMPROVE_CATEGORIES = [
 export const ROULETTE_TIME_LIMITS = [15, 30, 60];
 export const USER_ROLES = ['user', 'admin'];
 export const USER_STATUSES = ['active', 'suspended', 'banned'];
+
+export const REACTION_EMOJIS = ['thumbs_up', 'heart', 'laugh', 'wow', 'fire', 'clap'];
+export const REACTION_TARGET_TYPES = ['review', 'reply'];

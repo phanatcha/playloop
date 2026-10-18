@@ -13,6 +13,8 @@ import {
   toGameRef,
   toTheme,
 } from '../games/game.service.js';
+import { Reply } from '../discussions/reply.model.js';
+import { Reaction } from '../discussions/reaction.model.js';
 import { Review } from './review.model.js';
 import { answerProblems, verdictProblems } from './review.validation.js';
 
@@ -245,13 +247,24 @@ export async function deleteReview(reviewId, userId) {
   const review = await loadReview(reviewId);
   if (!isReviewer(review, userId)) throw ApiError.forbidden();
 
+  const replyIds = await Reply.find({ review: review._id }).distinct('_id');
   await mongoose.connection.transaction(async (session) => {
     await Review.deleteOne({ _id: review._id }, { session });
+    await Reply.deleteMany({ review: review._id }, { session });
+    await Reaction.deleteMany(
+      {
+        $or: [
+          { targetType: 'review', targetId: review._id },
+          { targetType: 'reply', targetId: { $in: replyIds } },
+        ],
+      },
+      { session },
+    );
     if (review.status === 'submitted') {
       await Game.updateOne({ _id: review.game._id }, { $inc: { reviewCount: -1 } }, { session });
     }
   });
-  // shortcut: votes, replies and earned reputation must be removed here once those modules exist
+  // shortcut: votes and the reputation they earned must be removed here once the votes module exists
 }
 
 export async function listMyReviews(userId, query) {
@@ -410,7 +423,7 @@ function expectations(review) {
   return result;
 }
 
-export function toReview(review, userId) {
+export function toReview(review, userId, reactions = []) {
   const { game } = review;
   const reviewer = isReviewer(review, userId);
   const gameOwner = Boolean(userId) && game.owner._id.equals(userId);
@@ -445,10 +458,10 @@ export function toReview(review, userId) {
     feedbackStatus: review.feedbackStatus,
     helpfulCount: review.helpfulCount,
     notHelpfulCount: review.notHelpfulCount,
-    // shortcut: myVote and reactions are filled in by the votes and discussions modules
+    // shortcut: myVote is filled in by the votes module (Max)
     myVote: null,
     replyCount: review.replyCount,
-    reactions: [],
+    reactions,
     isReviewer: reviewer,
     isGameOwner: gameOwner,
     createdAt: review.createdAt,
@@ -457,7 +470,7 @@ export function toReview(review, userId) {
   };
 }
 
-export function toReviewCard(review) {
+export function toReviewCard(review, reactions = []) {
   const cardCounts = { confused: 0, enjoyed: 0, bug: 0 };
   for (const card of review.playtest.cards) cardCounts[card.type] += 1;
   return {
@@ -473,7 +486,7 @@ export function toReviewCard(review) {
     // shortcut: myVote is filled in by the votes module (Max)
     myVote: null,
     replyCount: review.replyCount,
-    reactions: [],
+    reactions,
   };
 }
 
