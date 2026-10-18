@@ -56,3 +56,15 @@ export const USER_STATUSES = ['active', 'suspended', 'banned'];
 
 export const REACTION_EMOJIS = ['thumbs_up', 'heart', 'laugh', 'wow', 'fire', 'clap'];
 export const REACTION_TARGET_TYPES = ['review', 'reply'];
+
+export const NOTIFICATION_TYPES = [
+  'review_received',
+  'reply_received',
+  'feedback_status_changed',
+  'badge_awarded',
+  'level_up',
+  'build_ready',
+  'build_failed',
+  'content_hidden',
+  'content_restored',
+];

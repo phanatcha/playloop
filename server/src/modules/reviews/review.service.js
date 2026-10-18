@@ -15,6 +15,7 @@ import {
 } from '../games/game.service.js';
 import { Reply } from '../discussions/reply.model.js';
 import { Reaction } from '../discussions/reaction.model.js';
+import { notify } from '../notifications/notification.service.js';
 import { Review } from './review.model.js';
 import { answerProblems, verdictProblems } from './review.validation.js';
 
@@ -239,7 +240,16 @@ export async function submitReview(reviewId, userId) {
     await review.save({ session });
     await Game.updateOne({ _id: review.game._id }, { $inc: { reviewCount: 1 } }, { session });
   });
-  // shortcut: badges, reviewer stats and the developer notification come with those modules
+  await notify({
+    user: review.game.owner._id,
+    actor: review.reviewer._id,
+    type: 'review_received',
+    message: `${review.reviewer.displayName} reviewed ${review.game.title}`,
+    link: `/my-games/${review.game.id}/feedback?review=${review.id}`,
+    game: review.game._id,
+    review: review._id,
+  });
+  // shortcut: badges and reviewer stats come with the badges module (Max)
   return review;
 }
 
@@ -330,6 +340,8 @@ export async function getFeedbackInbox(gameId, userId, query) {
   return { items, page, limit, total, counts };
 }
 
+const FEEDBACK_LABELS = { new: 'New', reviewed: 'Reviewed', planned: 'Planned', fixed: 'Fixed' };
+
 const feedbackBonus = (status) =>
   ({ planned: REPUTATION_POINTS.feedbackPlanned, fixed: REPUTATION_POINTS.feedbackFixed })[
     status
@@ -354,7 +366,16 @@ export async function setFeedbackStatus(reviewId, userId, status) {
       );
     }
   });
-  // shortcut: Bug Hunter badge and the reviewer notification come with the badges and notifications modules
+  await notify({
+    user: review.reviewer._id,
+    actor: review.game.owner._id,
+    type: 'feedback_status_changed',
+    message: `${review.game.owner.displayName} marked your review of ${review.game.title} as ${FEEDBACK_LABELS[status]}`,
+    link: `/games/${review.game.id}/reviews/${review.id}`,
+    game: review.game._id,
+    review: review._id,
+  });
+  // shortcut: Bug Hunter badge comes with the badges module (Max)
   return review;
 }
 
