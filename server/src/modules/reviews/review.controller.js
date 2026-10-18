@@ -69,6 +69,11 @@ export async function submitReview(req, res) {
   res.json(reviews.toReview(review, req.user.id));
 }
 
+export async function listGameReviews(req, res) {
+  const result = await reviews.listGameReviews(req.params.gameId, req.user?.id, req.query);
+  res.json({ ...result, items: result.items.map(reviews.toReviewCard) });
+}
+
 export async function getFeedbackInbox(req, res) {
   const result = await reviews.getFeedbackInbox(req.params.gameId, req.user.id, req.query);
   res.json({ ...result, items: result.items.map(reviews.toFeedbackItem) });

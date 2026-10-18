@@ -4,6 +4,7 @@ import * as controller from './review.controller.js';
 
 export const gameReviewRoutes = Router({ mergeParams: true });
 
+gameReviewRoutes.get('/', optionalAuth, controller.listGameReviews);
 gameReviewRoutes.post('/', requireAuth, controller.startReview);
 
 export const gameFeedbackRoutes = Router({ mergeParams: true });
