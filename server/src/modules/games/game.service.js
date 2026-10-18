@@ -195,7 +195,21 @@ export async function listMyGames(userId, query) {
 const estimatedMinutes = (game) =>
   game.form.playtest.missions.reduce((sum, mission) => sum + mission.minutes, 0);
 
-const coverUrl = (game) => mediaUrl(game.media.find((m) => m.type === 'image')?.key);
+export const coverUrl = (game) => mediaUrl(game.media.find((m) => m.type === 'image')?.key);
+
+export const toGameRef = (game) => ({
+  id: game._id.toString(),
+  title: game.title,
+  coverUrl: coverUrl(game),
+  deleted: Boolean(game.deletedAt),
+});
+
+export const toTheme = (theme) => ({
+  backgroundPreset: theme.backgroundKey ? null : theme.backgroundPreset,
+  backgroundImageUrl: mediaUrl(theme.backgroundKey),
+  accentColor: theme.accentColor,
+  controlsCardColor: theme.controlsCardColor,
+});
 
 export function toGameCard(game) {
   return {
@@ -215,7 +229,7 @@ export function toGameCard(game) {
 }
 
 export function toGameDetail(game, userId) {
-  const { theme, delivery } = game;
+  const { delivery } = game;
   return {
     id: game._id.toString(),
     status: game.status,
@@ -236,12 +250,7 @@ export function toGameDetail(game, userId) {
     ...(game.engine && { engine: game.engine }),
     engineOther: game.engineOther,
     credits: game.credits.map(({ role, name }) => ({ role, name })),
-    theme: {
-      backgroundPreset: theme.backgroundKey ? null : theme.backgroundPreset,
-      backgroundImageUrl: mediaUrl(theme.backgroundKey),
-      accentColor: theme.accentColor,
-      controlsCardColor: theme.controlsCardColor,
-    },
+    theme: toTheme(game.theme),
     delivery: {
       ...(delivery.method && { method: delivery.method }),
       webUrl: delivery.webUrl,
