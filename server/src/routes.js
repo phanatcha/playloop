@@ -12,6 +12,7 @@ import {
   replyRoutes,
   reviewReplyRoutes,
 } from './modules/discussions/discussion.routes.js';
+import { rouletteRoutes } from './modules/roulette/roulette.routes.js';
 
 export const routes = Router();
 
@@ -23,5 +24,6 @@ routes.use('/reviews/:reviewId/replies', reviewReplyRoutes);
 routes.use('/reviews', reviewRoutes);
 routes.use('/replies', replyRoutes);
 routes.use('/reactions', reactionRoutes);
+routes.use('/roulette', rouletteRoutes);
 routes.use('/me/games', myGameRoutes);
 routes.use('/me/reviews', myReviewRoutes);

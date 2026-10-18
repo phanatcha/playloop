@@ -206,7 +206,7 @@ export async function listMyGames(userId, query) {
   return { items, page, limit, total, summary };
 }
 
-const estimatedMinutes = (game) =>
+export const estimatedMinutes = (game) =>
   game.form.playtest.missions.reduce((sum, mission) => sum + mission.minutes, 0);
 
 export const coverUrl = (game) => mediaUrl(game.media.find((m) => m.type === 'image')?.key);
