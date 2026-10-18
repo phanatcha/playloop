@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
+import { FEEDBACK_STATUSES, REPUTATION_POINTS } from '@playloop/shared';
 import { ApiError } from '../../utils/ApiError.js';
 import { mediaUrl } from '../../utils/mediaUrl.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
+import { User } from '../users/user.model.js';
 import { Game } from '../games/game.model.js';
-import { coverUrl, toForm, toGameRef, toTheme } from '../games/game.service.js';
+import { coverUrl, findOwnedGame, toForm, toGameRef, toTheme } from '../games/game.service.js';
 import { Review } from './review.model.js';
 import { answerProblems, verdictProblems } from './review.validation.js';
 
@@ -259,6 +261,69 @@ export async function listMyReviews(userId, query) {
   ]);
   return { items, page, limit, total };
 }
+
+export async function getFeedbackInbox(gameId, userId, query) {
+  const game = await findOwnedGame(gameId, userId);
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const base = { game: game._id, status: 'submitted' };
+  const filter = { ...base, ...(query.status && { feedbackStatus: query.status }) };
+
+  const [items, total, groups] = await Promise.all([
+    Review.find(filter)
+      .sort({ submittedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('reviewer', USER_SUMMARY_FIELDS),
+    Review.countDocuments(filter),
+    Review.aggregate([
+      { $match: base },
+      { $group: { _id: '$feedbackStatus', count: { $sum: 1 } } },
+    ]),
+  ]);
+  const counts = Object.fromEntries(FEEDBACK_STATUSES.map((s) => [s, 0]));
+  for (const { _id, count } of groups) counts[_id] = count;
+  counts.all = groups.reduce((sum, g) => sum + g.count, 0);
+  return { items, page, limit, total, counts };
+}
+
+const feedbackBonus = (status) =>
+  ({ planned: REPUTATION_POINTS.feedbackPlanned, fixed: REPUTATION_POINTS.feedbackFixed })[
+    status
+  ] ?? 0;
+
+export async function setFeedbackStatus(reviewId, userId, status) {
+  const review = await loadReview(reviewId);
+  if (!review.game.owner._id.equals(userId)) throw ApiError.forbidden();
+  if (review.status !== 'submitted')
+    throw ApiError.conflict('Only submitted reviews have a status');
+  if (review.feedbackStatus === status) return review;
+
+  const delta = feedbackBonus(status) - feedbackBonus(review.feedbackStatus);
+  await mongoose.connection.transaction(async (session) => {
+    review.feedbackStatus = status;
+    await review.save({ session });
+    if (delta) {
+      await User.updateOne(
+        { _id: review.reviewer._id },
+        [{ $set: { reputationPoints: { $max: [0, { $add: ['$reputationPoints', delta] }] } } }],
+        { session, updatePipeline: true },
+      );
+    }
+  });
+  // shortcut: Bug Hunter badge and the reviewer notification come with the badges and notifications modules
+  return review;
+}
+
+export const toFeedbackItem = (review) => ({
+  id: review._id.toString(),
+  reviewer: toUserSummary(review.reviewer),
+  gameVersion: review.gameVersion,
+  excerpt: (review.finalVerdict.changeText ?? '').slice(0, 200),
+  playedSeconds: review.playtest.playedSeconds,
+  feedbackStatus: review.feedbackStatus,
+  submittedAt: review.submittedAt,
+});
 
 function currentStep(review) {
   if (!review.firstImpression.completedAt) return 'first_impression';

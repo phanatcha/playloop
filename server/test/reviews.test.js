@@ -45,15 +45,12 @@ async function playThrough(id) {
   for (const mission of ['m1', 'm2']) {
     await request(app).post(`/api/reviews/${id}/missions/${mission}/accept`).set(as(reviewer));
   }
-  await request(app)
-    .post(`/api/reviews/${id}/cards`)
-    .set(as(reviewer))
-    .send({
-      type: 'enjoyed',
-      missionId: 'm1',
-      comment: 'Found the radio fast.',
-      playedSeconds: 492,
-    });
+  await request(app).post(`/api/reviews/${id}/cards`).set(as(reviewer)).send({
+    type: 'enjoyed',
+    missionId: 'm1',
+    comment: 'Found the radio fast.',
+    playedSeconds: 492,
+  });
   await put(id, 'playtest', { playedSeconds: 2280, complete: true });
   await put(id, 'developer-answers', {
     answers: [{ questionId: 'dq1', text: 'Yes, very.' }],
