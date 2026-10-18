@@ -16,6 +16,11 @@ export const LEVELS = [
   { level: 8, title: 'Legend', minPoints: 8000 },
 ];
 
+export function levelFor(points, levels = LEVELS) {
+  const index = levels.findLastIndex((level) => points >= level.minPoints);
+  return { ...levels[index], nextLevelMinPoints: levels[index + 1]?.minPoints ?? null };
+}
+
 export const BADGES = [
   {
     key: 'first_launch',
