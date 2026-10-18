@@ -3,6 +3,7 @@ import { ApiError } from '../../utils/ApiError.js';
 import { mediaUrl } from '../../utils/mediaUrl.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
 import { Review } from '../reviews/review.model.js';
+import { User } from '../users/user.model.js';
 import { Game } from './game.model.js';
 import { defaultForm } from './game.defaults.js';
 import {
@@ -152,19 +153,84 @@ export async function listGames(query) {
     const values = asList(query[param]);
     if (values.length) filter[field] = { $in: values };
   }
-  // shortcut: popular uses all-time reviewCount, switch to submitted reviews in the last 30 days once reviews exist
-  const sort =
-    query.sort === 'popular' ? { reviewCount: -1, publishedAt: -1 } : { publishedAt: -1 };
-
+  const skip = (page - 1) * limit;
   const [items, total] = await Promise.all([
-    Game.find(filter)
-      .sort(sort)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate('owner', USER_SUMMARY_FIELDS),
+    query.sort === 'popular'
+      ? popularGames(filter, skip, limit)
+      : Game.find(filter)
+          .sort({ publishedAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate('owner', USER_SUMMARY_FIELDS),
     Game.countDocuments(filter),
   ]);
   return { items, page, limit, total };
+}
+
+const POPULAR_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+async function popularGames(filter, skip, limit) {
+  const since = new Date(Date.now() - POPULAR_WINDOW_MS);
+  const ranked = await Game.aggregate([
+    { $match: filter },
+    {
+      $lookup: {
+        from: Review.collection.name,
+        let: { game: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$game', '$$game'] },
+                  { $eq: ['$status', 'submitted'] },
+                  { $gte: ['$submittedAt', since] },
+                ],
+              },
+            },
+          },
+          { $count: 'count' },
+        ],
+        as: 'recent',
+      },
+    },
+    { $addFields: { recentReviews: { $ifNull: [{ $first: '$recent.count' }, 0] } } },
+    { $sort: { recentReviews: -1, publishedAt: -1, _id: 1 } },
+    { $skip: skip },
+    { $limit: limit },
+    { $project: { _id: 1 } },
+  ]);
+  const ids = ranked.map((g) => g._id);
+  const games = await Game.find({ _id: { $in: ids } }).populate('owner', USER_SUMMARY_FIELDS);
+  const byId = new Map(games.map((g) => [g.id, g]));
+  return ids.map((id) => byId.get(id.toString()));
+}
+
+export async function listRecommendations(userId, limit) {
+  const base = { status: 'published', deletedAt: null };
+  if (!userId) return popularGames(base, 0, limit);
+
+  const me = new mongoose.Types.ObjectId(userId);
+  const [user, reviewed] = await Promise.all([
+    User.findById(me).select('favoriteGenres'),
+    Review.distinct('game', { reviewer: me }),
+  ]);
+  const notMine = { ...base, owner: { $ne: me } };
+  const picks = user?.favoriteGenres.length
+    ? await popularGames(
+        { ...notMine, _id: { $nin: reviewed }, genres: { $in: user.favoriteGenres } },
+        0,
+        limit,
+      )
+    : [];
+  if (picks.length < limit) {
+    const skip = [...reviewed, ...picks.map((g) => g._id)];
+    // shortcut: admin-featured games should fill in before popular ones once the admin module exists
+    picks.push(
+      ...(await popularGames({ ...notMine, _id: { $nin: skip } }, 0, limit - picks.length)),
+    );
+  }
+  return picks;
 }
 
 export async function listMyGames(userId, query) {

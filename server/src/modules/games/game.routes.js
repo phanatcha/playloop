@@ -17,3 +17,7 @@ gameRoutes.patch('/:gameId/form', requireAuth, controller.updateForm);
 export const myGameRoutes = Router();
 
 myGameRoutes.get('/', requireAuth, controller.listMyGames);
+
+export const recommendationRoutes = Router();
+
+recommendationRoutes.get('/', optionalAuth, controller.listRecommendations);
