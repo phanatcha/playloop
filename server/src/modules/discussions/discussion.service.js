@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { REACTION_EMOJIS } from '@playloop/shared';
 import { ApiError } from '../../utils/ApiError.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
+import { notify } from '../notifications/notification.service.js';
 import { Review } from '../reviews/review.model.js';
 import { Reply } from './reply.model.js';
 import { Reaction } from './reaction.model.js';
@@ -90,6 +91,23 @@ export async function createReply(reviewId, userId, body) {
     await Review.updateOne({ _id: review._id }, { $inc: { replyCount: 1 } }, { session });
   });
   await reply.populate('author', USER_SUMMARY_FIELDS);
+
+  const name = reply.author.displayName;
+  const recipients = [
+    [review.reviewer, `${name} replied to your review of ${review.game.title}`],
+    [review.game.owner, `${name} replied to a review of ${review.game.title}`],
+  ].filter(([user], i, all) => all.findIndex(([other]) => other.equals(user)) === i);
+  for (const [user, message] of recipients) {
+    await notify({
+      user,
+      actor: userId,
+      type: 'reply_received',
+      message,
+      link: `/games/${review.game.id}/reviews/${review.id}`,
+      game: review.game._id,
+      review: review._id,
+    });
+  }
   return { reply, review };
 }
 

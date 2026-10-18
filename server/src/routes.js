@@ -13,6 +13,7 @@ import {
   reviewReplyRoutes,
 } from './modules/discussions/discussion.routes.js';
 import { rouletteRoutes } from './modules/roulette/roulette.routes.js';
+import { notificationRoutes } from './modules/notifications/notification.routes.js';
 
 export const routes = Router();
 
@@ -27,3 +28,4 @@ routes.use('/reactions', reactionRoutes);
 routes.use('/roulette', rouletteRoutes);
 routes.use('/me/games', myGameRoutes);
 routes.use('/me/reviews', myReviewRoutes);
+routes.use('/me/notifications', notificationRoutes);
