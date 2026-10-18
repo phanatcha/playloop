@@ -5,7 +5,14 @@ import { mediaUrl } from '../../utils/mediaUrl.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
 import { User } from '../users/user.model.js';
 import { Game } from '../games/game.model.js';
-import { coverUrl, findOwnedGame, toForm, toGameRef, toTheme } from '../games/game.service.js';
+import {
+  coverUrl,
+  findOwnedGame,
+  getGame,
+  toForm,
+  toGameRef,
+  toTheme,
+} from '../games/game.service.js';
 import { Review } from './review.model.js';
 import { answerProblems, verdictProblems } from './review.validation.js';
 
@@ -262,6 +269,29 @@ export async function listMyReviews(userId, query) {
   return { items, page, limit, total };
 }
 
+export async function listGameReviews(gameId, userId, query) {
+  const game = await getGame(gameId, userId);
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const filter = {
+    game: game._id,
+    status: 'submitted',
+    ...(query.version && { gameVersion: query.version }),
+  };
+  const sort =
+    query.sort === 'newest' ? { submittedAt: -1 } : { helpfulCount: -1, submittedAt: -1 };
+
+  const [items, total] = await Promise.all([
+    Review.find(filter)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('reviewer', USER_SUMMARY_FIELDS),
+    Review.countDocuments(filter),
+  ]);
+  return { items, page, limit, total };
+}
+
 export async function getFeedbackInbox(gameId, userId, query) {
   const game = await findOwnedGame(gameId, userId);
   const page = query.page ?? 1;
@@ -424,6 +454,26 @@ export function toReview(review, userId) {
     createdAt: review.createdAt,
     updatedAt: review.updatedAt,
     submittedAt: review.submittedAt,
+  };
+}
+
+export function toReviewCard(review) {
+  const cardCounts = { confused: 0, enjoyed: 0, bug: 0 };
+  for (const card of review.playtest.cards) cardCounts[card.type] += 1;
+  return {
+    id: review._id.toString(),
+    reviewer: toUserSummary(review.reviewer),
+    gameVersion: review.gameVersion,
+    submittedAt: review.submittedAt,
+    cardCounts,
+    finalVerdict: toVerdictStage(review),
+    feedbackStatus: review.feedbackStatus,
+    helpfulCount: review.helpfulCount,
+    notHelpfulCount: review.notHelpfulCount,
+    // shortcut: myVote is filled in by the votes module (Max)
+    myVote: null,
+    replyCount: review.replyCount,
+    reactions: [],
   };
 }
 
