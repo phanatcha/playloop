@@ -31,8 +31,6 @@ On macOS or Linux, copy the env file with `cp server/.env.example server/.env`.
 | http://localhost:4000/api/docs/openapi.json | OpenAPI document |
 | http://localhost:4000/api/health | `{ "status": "ok", "db": "connected" }` when MongoDB is up |
 
-Swagger UI is served only when `NODE_ENV` is not `production`. The example env file sets `development`.
-
 Stop the API with Ctrl+C. Stop the containers with:
 
 ```sh
@@ -40,6 +38,14 @@ npm run services:down
 ```
 
 Run the server tests with `npm test`.
+
+## View the API docs
+
+Start the API with `npm run dev`, then open http://localhost:4000/api/docs in a browser. That page is Swagger UI: each endpoint can be expanded and tried from there.
+
+The same document as JSON is at http://localhost:4000/api/docs/openapi.json. The source file is `docs/api/openapi.yaml`.
+
+These pages are served only when `NODE_ENV` is not `production`. The example env file sets `development`.
 
 ## API
 
