@@ -57,6 +57,9 @@ const reviewSchema = new mongoose.Schema(
     notHelpfulCount: { type: Number, default: 0 },
     replyCount: { type: Number, default: 0 },
     submittedAt: { type: Date, default: null },
+    hiddenAt: { type: Date, default: null },
+    removedAt: { type: Date, default: null },
+    moderationReason: { type: String, default: null },
   },
   { timestamps: true },
 );

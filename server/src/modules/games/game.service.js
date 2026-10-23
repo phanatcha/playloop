@@ -2,7 +2,12 @@ import mongoose from 'mongoose';
 import { ApiError } from '../../utils/ApiError.js';
 import { mediaUrl } from '../../utils/mediaUrl.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
+import { attachBuilds, toBuild } from '../builds/build.service.js';
+import { activeGenreKeys, getConfig } from '../meta/config.service.js';
+import { awardAchievements } from '../reputation/reputation.service.js';
 import { Review } from '../reviews/review.model.js';
+import { resolveGameMedia, takeUpload } from '../uploads/upload.service.js';
+import { User } from '../users/user.model.js';
 import { Game } from './game.model.js';
 import { defaultForm } from './game.defaults.js';
 import {
@@ -33,72 +38,90 @@ const isOwner = (game, userId) => Boolean(userId) && game.owner._id.equals(userI
 
 export async function findOwnedGame(gameId, userId) {
   const game = await findGame(gameId);
+  if (game.hiddenAt) throw ApiError.notFound('Game not found');
   if (!isOwner(game, userId)) throw ApiError.forbidden();
   return game;
 }
 
 export async function createGame(userId, { title }) {
   const game = await Game.create({ owner: userId, title, form: defaultForm() });
-  return game.populate('owner', USER_SUMMARY_FIELDS);
+  await game.populate('owner', USER_SUMMARY_FIELDS);
+  return attachBuilds(game);
 }
 
-export async function getGame(gameId, userId) {
+export async function getGame(gameId, user) {
   const game = await findGame(gameId);
-  if (game.status === 'draft' && !isOwner(game, userId)) throw ApiError.notFound('Game not found');
-  return game;
+  if (game.hiddenAt && user?.role !== 'admin') throw ApiError.notFound('Game not found');
+  const owner = await User.findById(game.owner._id).select('status');
+  if (owner?.status === 'banned' && user?.role !== 'admin' && !isOwner(game, user?.id)) {
+    throw ApiError.notFound('Game not found');
+  }
+  if (game.status === 'draft' && !isOwner(game, user?.id))
+    throw ApiError.notFound('Game not found');
+  return attachBuilds(game);
 }
 
 export async function updateGame(gameId, userId, input) {
   const game = await findOwnedGame(gameId, userId);
   const { mediaIds, theme, delivery, ...fields } = input;
 
-  // shortcut: media and background images need the uploads module (Max), reject until it lands
-  if (mediaIds || theme?.backgroundUploadId) {
-    throw ApiError.validation('Uploads are not available yet', [
-      {
-        path: mediaIds ? '/body/mediaIds' : '/body/theme/backgroundUploadId',
-        message: 'Not available yet',
-      },
-    ]);
+  await getConfig();
+  throwIfProblems(genreProblems(fields.genres, activeGenreKeys()));
+  if (mediaIds) game.media = await resolveGameMedia(game, mediaIds, userId);
+  if (theme?.backgroundUploadId) {
+    const upload = await takeUpload(theme.backgroundUploadId, userId, 'game_background');
+    if (upload.game && !upload.game.equals(game._id)) {
+      throw ApiError.validation('Some fields are invalid', [
+        { path: '/body/theme/backgroundUploadId', message: 'This upload belongs to another game' },
+      ]);
+    }
+    game.theme.backgroundKey = upload.key;
   }
-  throwIfProblems(genreProblems(fields.genres));
 
   game.set(fields);
   if (theme) {
-    if (theme.backgroundPreset)
+    if (theme.backgroundPreset && !theme.backgroundUploadId) {
       game.set({ 'theme.backgroundPreset': theme.backgroundPreset, 'theme.backgroundKey': null });
+    }
     if (theme.accentColor) game.theme.accentColor = theme.accentColor;
     if (theme.controlsCardColor) game.theme.controlsCardColor = theme.controlsCardColor;
   }
   if (delivery) game.set({ delivery: { ...game.delivery.toObject(), ...delivery } });
 
   if (game.status === 'published') {
+    await attachBuilds(game);
     throwIfProblems(publishProblems(game), 'A published game must stay complete');
     if (game.isModified('version')) game.lastUpdatedAt = new Date();
   }
-  return game.save();
+  await game.save();
+  return attachBuilds(game);
 }
 
 export async function deleteGame(gameId, userId) {
   const game = await findOwnedGame(gameId, userId);
   game.deletedAt = new Date();
   await game.save();
+  await Review.deleteMany({ game: game._id, status: 'in_progress' });
 }
 
 export async function publishGame(gameId, userId) {
   const game = await findOwnedGame(gameId, userId);
   if (game.status === 'published') throw ApiError.conflict('Game is already published');
+  await attachBuilds(game);
   throwIfProblems(publishProblems(game), 'Finish these before publishing');
   const now = new Date();
   game.set({ status: 'published', lastUpdatedAt: now, publishedAt: game.publishedAt ?? now });
-  return game.save();
+  await game.save();
+  await awardAchievements(userId);
+  return attachBuilds(game);
 }
 
 export async function unpublishGame(gameId, userId) {
   const game = await findOwnedGame(gameId, userId);
   if (game.status === 'draft') throw ApiError.conflict('Game is already a draft');
   game.status = 'draft';
-  return game.save();
+  await game.save();
+  return attachBuilds(game);
 }
 
 export const getForm = findOwnedGame;
@@ -142,7 +165,14 @@ export async function updateForm(gameId, userId, input) {
 export async function listGames(query) {
   const page = query.page ?? 1;
   const limit = query.limit ?? 20;
-  const filter = { status: 'published', deletedAt: null };
+  const banned = await User.find({ status: 'banned' }).distinct('_id');
+  const filter = {
+    status: 'published',
+    deletedAt: null,
+    hiddenAt: null,
+    removedAt: null,
+    ...(banned.length && { owner: { $nin: banned } }),
+  };
   if (query.search) filter.title = { $regex: escapeRegex(query.search), $options: 'i' };
   for (const [param, field] of [
     ['genre', 'genres'],
@@ -152,13 +182,58 @@ export async function listGames(query) {
     const values = asList(query[param]);
     if (values.length) filter[field] = { $in: values };
   }
-  // shortcut: popular uses all-time reviewCount, switch to submitted reviews in the last 30 days once reviews exist
-  const sort =
-    query.sort === 'popular' ? { reviewCount: -1, publishedAt: -1 } : { publishedAt: -1 };
+  if (query.sort === 'popular') {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const ranked = await Review.aggregate([
+      {
+        $match: {
+          status: 'submitted',
+          hiddenAt: null,
+          removedAt: null,
+          submittedAt: { $gte: since },
+        },
+      },
+      { $group: { _id: '$game', count: { $sum: 1 } } },
+    ]);
+    const counts = new Map(ranked.map((row) => [row._id.toString(), row.count]));
+    const games = await Game.find(filter).populate('owner', USER_SUMMARY_FIELDS);
+    games.sort(
+      (a, b) =>
+        (counts.get(b._id.toString()) ?? 0) - (counts.get(a._id.toString()) ?? 0) ||
+        b.publishedAt - a.publishedAt,
+    );
+    return {
+      items: games.slice((page - 1) * limit, page * limit),
+      page,
+      limit,
+      total: games.length,
+    };
+  }
 
   const [items, total] = await Promise.all([
     Game.find(filter)
-      .sort(sort)
+      .sort({ publishedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('owner', USER_SUMMARY_FIELDS),
+    Game.countDocuments(filter),
+  ]);
+  return { items, page, limit, total };
+}
+
+export async function listPublishedByOwner(ownerId, query) {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const filter = {
+    owner: ownerId,
+    status: 'published',
+    deletedAt: null,
+    hiddenAt: null,
+    removedAt: null,
+  };
+  const [items, total] = await Promise.all([
+    Game.find(filter)
+      .sort({ publishedAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('owner', USER_SUMMARY_FIELDS),
@@ -268,7 +343,7 @@ export function toGameDetail(game, userId) {
     delivery: {
       ...(delivery.method && { method: delivery.method }),
       webUrl: delivery.webUrl,
-      builds: [],
+      builds: (game.$locals.builds ?? []).map(toBuild),
     },
     playtest: {
       missionCount: game.form.playtest.missions.length,

@@ -1,10 +1,22 @@
 import mongoose from 'mongoose';
-import { FEEDBACK_STATUSES, REPUTATION_POINTS } from '@playloop/shared';
+import { FEEDBACK_STATUSES } from '@playloop/shared';
 import { ApiError } from '../../utils/ApiError.js';
-import { mediaUrl } from '../../utils/mediaUrl.js';
+import { attachBuilds, downloadOptions, webPlayUrl } from '../builds/build.service.js';
+import { reactionSummaries } from '../discussions/discussion.service.js';
 import { toUserSummary, USER_SUMMARY_FIELDS } from '../users/user.service.js';
-import { User } from '../users/user.model.js';
 import { Game } from '../games/game.model.js';
+import { notify } from '../notifications/notification.service.js';
+import {
+  adjustReputation,
+  awardAchievements,
+  feedbackPoints,
+  notifyProgress,
+  reverseReviewReputation,
+} from '../reputation/reputation.service.js';
+import { proofUrl, takeUpload } from '../uploads/upload.service.js';
+import { votesByReview } from '../votes/vote.service.js';
+import { Reaction, Reply } from '../discussions/discussion.model.js';
+import { Vote } from '../votes/vote.model.js';
 import { coverUrl, findOwnedGame, toForm, toGameRef, toTheme } from '../games/game.service.js';
 import { Review } from './review.model.js';
 import { answerProblems, verdictProblems } from './review.validation.js';
@@ -53,7 +65,13 @@ function requireStage(done, message) {
 }
 
 export async function startReview(gameId, userId, origin = 'browse') {
-  const game = await Game.findOne({ _id: gameId, deletedAt: null, status: 'published' });
+  const game = await Game.findOne({
+    _id: gameId,
+    deletedAt: null,
+    hiddenAt: null,
+    removedAt: null,
+    status: 'published',
+  });
   if (!game) throw ApiError.notFound('Game not found');
   if (game.owner.equals(userId)) throw ApiError.forbidden("You can't review your own game");
 
@@ -84,11 +102,14 @@ export async function startReview(gameId, userId, origin = 'browse') {
   }
 }
 
-export async function getReview(reviewId, userId) {
+export async function getReview(reviewId, user) {
   const review = await loadReview(reviewId);
-  if (review.status === 'in_progress' && !isReviewer(review, userId)) {
+  if (review.removedAt) throw ApiError.notFound('Review not found');
+  if (review.hiddenAt && user?.role !== 'admin') throw ApiError.notFound('Review not found');
+  if (review.status === 'in_progress' && !isReviewer(review, user?.id)) {
     throw ApiError.notFound('Review not found');
   }
+  await attachBuilds(review.game);
   return review;
 }
 
@@ -147,11 +168,14 @@ export async function savePlaytest(reviewId, userId, { playedSeconds, proofUploa
   const review = await loadEditable(reviewId, userId);
   requireStage(review.firstImpression.completedAt, 'Finish your first impression first');
 
-  // shortcut: proof screenshots need the uploads module (Max), reject until it lands
   if (proofUploadId) {
-    throw ApiError.validation('Uploads are not available yet', [
-      { path: '/body/proofUploadId', message: 'Not available yet' },
-    ]);
+    const upload = await takeUpload(proofUploadId, userId, 'proof_screenshot');
+    if (upload.review && !upload.review.equals(review._id)) {
+      throw ApiError.validation('Some fields are invalid', [
+        { path: '/body/proofUploadId', message: 'This upload belongs to another review' },
+      ]);
+    }
+    review.playtest.proofKey = upload.key;
   }
   if (proofUploadId === null) review.playtest.proofKey = null;
   if (playedSeconds !== undefined) review.playtest.playedSeconds = playedSeconds;
@@ -230,7 +254,18 @@ export async function submitReview(reviewId, userId) {
     await review.save({ session });
     await Game.updateOne({ _id: review.game._id }, { $inc: { reviewCount: 1 } }, { session });
   });
-  // shortcut: badges, reviewer stats and the developer notification come with those modules
+  const badges = await awardAchievements(review.reviewer._id);
+  const link = `/games/${review.game._id}/reviews/${review._id}`;
+  await notifyProgress(review.reviewer._id, { badges }, link);
+  await notify({
+    user: review.game.owner._id,
+    type: 'review_received',
+    message: `${review.reviewer.displayName} reviewed ${review.game.title}`,
+    link,
+    actor: review.reviewer._id,
+    game: review.game._id,
+    reviewId: review._id,
+  });
   return review;
 }
 
@@ -239,12 +274,46 @@ export async function deleteReview(reviewId, userId) {
   if (!isReviewer(review, userId)) throw ApiError.forbidden();
 
   await mongoose.connection.transaction(async (session) => {
-    await Review.deleteOne({ _id: review._id }, { session });
     if (review.status === 'submitted') {
+      await reverseReviewReputation(review._id, session);
+      await Vote.deleteMany({ review: review._id }).session(session);
+      const replies = await Reply.find({ review: review._id }).select('_id').session(session);
+      await Reaction.deleteMany({
+        $or: [
+          { targetType: 'review', targetId: review._id },
+          { targetType: 'reply', targetId: { $in: replies.map((reply) => reply._id) } },
+        ],
+      }).session(session);
+      await Reply.deleteMany({ review: review._id }).session(session);
       await Game.updateOne({ _id: review.game._id }, { $inc: { reviewCount: -1 } }, { session });
     }
+    await Review.deleteOne({ _id: review._id }, { session });
   });
-  // shortcut: votes, replies and earned reputation must be removed here once those modules exist
+}
+
+export async function listProfileReviews(userId, query) {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const filter = { reviewer: userId, status: 'submitted', hiddenAt: null, removedAt: null };
+  const [items, total] = await Promise.all([
+    Review.find(filter)
+      .sort({ submittedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('game', 'title media deletedAt'),
+    Review.countDocuments(filter),
+  ]);
+  return { items, page, limit, total };
+}
+
+export function toProfileReviewItem(review) {
+  return {
+    id: review._id.toString(),
+    game: toGameRef(review.game),
+    excerpt: (review.finalVerdict.changeText ?? '').slice(0, 200),
+    helpfulCount: review.helpfulCount,
+    submittedAt: review.submittedAt,
+  };
 }
 
 export async function listMyReviews(userId, query) {
@@ -287,11 +356,6 @@ export async function getFeedbackInbox(gameId, userId, query) {
   return { items, page, limit, total, counts };
 }
 
-const feedbackBonus = (status) =>
-  ({ planned: REPUTATION_POINTS.feedbackPlanned, fixed: REPUTATION_POINTS.feedbackFixed })[
-    status
-  ] ?? 0;
-
 export async function setFeedbackStatus(reviewId, userId, status) {
   const review = await loadReview(reviewId);
   if (!review.game.owner._id.equals(userId)) throw ApiError.forbidden();
@@ -299,19 +363,38 @@ export async function setFeedbackStatus(reviewId, userId, status) {
     throw ApiError.conflict('Only submitted reviews have a status');
   if (review.feedbackStatus === status) return review;
 
-  const delta = feedbackBonus(status) - feedbackBonus(review.feedbackStatus);
+  const delta = feedbackPoints(status) - feedbackPoints(review.feedbackStatus);
+  const link = `/games/${review.game._id}/reviews/${review._id}`;
+  let progress = null;
+  let badges = [];
   await mongoose.connection.transaction(async (session) => {
     review.feedbackStatus = status;
     await review.save({ session });
-    if (delta) {
-      await User.updateOne(
-        { _id: review.reviewer._id },
-        [{ $set: { reputationPoints: { $max: [0, { $add: ['$reputationPoints', delta] }] } } }],
-        { session, updatePipeline: true },
-      );
-    }
+    progress = await adjustReputation(
+      review.reviewer._id,
+      delta,
+      { review: review._id, kind: `feedback_${status}` },
+      session,
+    );
+    badges = await awardAchievements(review.reviewer._id, session);
+    await notifyProgress(
+      review.reviewer._id,
+      { before: progress?.before, after: progress?.after, badges },
+      link,
+      session,
+    );
+    await notify(
+      {
+        user: review.reviewer._id,
+        type: 'feedback_status_changed',
+        message: `${review.game.title}: your feedback is now ${status}`,
+        link,
+        game: review.game._id,
+        reviewId: review._id,
+      },
+      session,
+    );
   });
-  // shortcut: Bug Hunter badge and the reviewer notification come with the badges and notifications modules
   return review;
 }
 
@@ -349,14 +432,13 @@ export const toCard = (card) => ({
   createdAt: card.createdAt,
 });
 
-export function toPlaytestStage(review, canSeeProof) {
+export async function toPlaytestStage(review, canSeeProof) {
   const { playtest } = review;
   return withCompletedAt(playtest, {
     acceptedMissionIds: [...playtest.acceptedMissionIds],
     cards: playtest.cards.map(toCard),
     playedSeconds: playtest.playedSeconds,
-    // shortcut: public media URL, switch to a presigned private URL when proof uploads land
-    proofScreenshotUrl: canSeeProof ? mediaUrl(playtest.proofKey) : null,
+    proofScreenshotUrl: canSeeProof ? await proofUrl(playtest.proofKey) : null,
   });
 }
 
@@ -380,10 +462,69 @@ function expectations(review) {
   return result;
 }
 
-export function toReview(review, userId) {
+export async function listGameReviews(gameId, userId, query) {
+  const game = await Game.findOne({
+    _id: gameId,
+    status: 'published',
+    deletedAt: null,
+    removedAt: null,
+    hiddenAt: null,
+  });
+  if (!game) throw ApiError.notFound('Game not found');
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const filter = { game: game._id, status: 'submitted', hiddenAt: null, removedAt: null };
+  if (query.version) filter.gameVersion = query.version;
+  const sort =
+    query.sort === 'newest' ? { submittedAt: -1 } : { helpfulCount: -1, submittedAt: -1 };
+  const [items, total] = await Promise.all([
+    Review.find(filter)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('reviewer', USER_SUMMARY_FIELDS),
+    Review.countDocuments(filter),
+  ]);
+  const ids = items.map((item) => item._id);
+  const [votes, reactions] = await Promise.all([
+    votesByReview(ids, userId),
+    reactionSummaries('review', ids, userId),
+  ]);
+  return {
+    items: items.map((review) => ({
+      id: review._id.toString(),
+      reviewer: toUserSummary(review.reviewer),
+      gameVersion: review.gameVersion,
+      submittedAt: review.submittedAt,
+      cardCounts: {
+        confused: review.playtest.cards.filter((card) => card.type === 'confused').length,
+        enjoyed: review.playtest.cards.filter((card) => card.type === 'enjoyed').length,
+        bug: review.playtest.cards.filter((card) => card.type === 'bug').length,
+      },
+      finalVerdict: toVerdictStage(review),
+      feedbackStatus: review.feedbackStatus,
+      helpfulCount: review.helpfulCount,
+      notHelpfulCount: review.notHelpfulCount,
+      myVote: votes.get(review._id.toString()) ?? null,
+      replyCount: review.replyCount,
+      reactions: reactions.get(review._id.toString()) ?? [],
+    })),
+    page,
+    limit,
+    total,
+  };
+}
+
+export async function toReview(review, userId) {
   const { game } = review;
+  if (!game.$locals.builds) await attachBuilds(game);
   const reviewer = isReviewer(review, userId);
   const gameOwner = Boolean(userId) && game.owner._id.equals(userId);
+  const [votes, reactions] = await Promise.all([
+    votesByReview([review._id], userId),
+    reactionSummaries('review', [review._id], userId),
+  ]);
+  const builtPlayUrl = webPlayUrl(game);
   return {
     id: review._id.toString(),
     status: review.status,
@@ -402,23 +543,21 @@ export function toReview(review, userId) {
       controls: game.controls.map(({ key, action }) => ({ key, action })),
       owner: toUserSummary(game.owner),
       deleted: Boolean(game.deletedAt),
-      webPlayUrl: review.deliveryMethod === 'web' ? game.delivery.webUrl : null,
-      // shortcut: empty until the uploads module provides download builds
-      downloads: [],
+      webPlayUrl: review.deliveryMethod === 'web' ? (builtPlayUrl ?? game.delivery.webUrl) : null,
+      downloads: review.deliveryMethod === 'download' ? downloadOptions(game.$locals.builds) : [],
     },
     form: review.form,
     firstImpression: toAnswersStage(review.firstImpression),
-    playtest: toPlaytestStage(review, reviewer || gameOwner),
+    playtest: await toPlaytestStage(review, reviewer || gameOwner),
     developerAnswers: toAnswersStage(review.developerAnswers),
     finalVerdict: toVerdictStage(review),
     expectations: expectations(review),
     feedbackStatus: review.feedbackStatus,
     helpfulCount: review.helpfulCount,
     notHelpfulCount: review.notHelpfulCount,
-    // shortcut: myVote and reactions are filled in by the votes and discussions modules
-    myVote: null,
+    myVote: votes.get(review._id.toString()) ?? null,
     replyCount: review.replyCount,
-    reactions: [],
+    reactions: reactions.get(review._id.toString()) ?? [],
     isReviewer: reviewer,
     isGameOwner: gameOwner,
     createdAt: review.createdAt,

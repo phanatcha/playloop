@@ -9,9 +9,8 @@ const COMPARABLE_PRESETS = {
 
 const duplicates = (ids) => ids.filter((id, i) => ids.indexOf(id) !== i);
 
-export function genreProblems(genres = []) {
-  // shortcut: checks the default genre list, switch to the admin genre config when it exists
-  const unknown = genres.filter((genre) => !DEFAULT_GENRES.includes(genre));
+export function genreProblems(genres = [], allowed = DEFAULT_GENRES) {
+  const unknown = genres.filter((genre) => !allowed.includes(genre));
   return unknown.length
     ? [{ path: '/body/genres', message: `Unknown genres: ${unknown.join(', ')}` }]
     : [];
@@ -92,12 +91,22 @@ export function publishProblems(game) {
     [!game.form.playtest.missions.length, '/form/playtest/missions', 'Add at least one mission'],
     [!game.delivery.method, '/delivery/method', 'Choose how players get your game'],
     [
-      game.delivery.method === 'web' && !game.delivery.webUrl,
+      game.delivery.method === 'web' &&
+        !game.delivery.webUrl &&
+        !(game.$locals.builds ?? []).some(
+          (build) => build.target === 'web' && build.status === 'ready',
+        ),
       '/delivery',
       'Upload a web build or add a link',
     ],
-    // shortcut: download builds need the uploads module, so download delivery can't publish yet
-    [game.delivery.method === 'download', '/delivery', 'Upload at least one download build'],
+    [
+      game.delivery.method === 'download' &&
+        !(game.$locals.builds ?? []).some(
+          (build) => build.target !== 'web' && build.status === 'ready',
+        ),
+      '/delivery',
+      'Upload at least one download build',
+    ],
   ];
   return checks.filter(([failed]) => failed).map(([, path, message]) => ({ path, message }));
 }

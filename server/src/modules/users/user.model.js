@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { PLATFORMS, USER_ROLES, USER_STATUSES } from '@playloop/shared';
+import { BADGES, PLATFORMS, USER_ROLES, USER_STATUSES } from '@playloop/shared';
 
 const userSchema = new mongoose.Schema(
   {
@@ -29,6 +29,14 @@ const userSchema = new mongoose.Schema(
       by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     },
     reputationPoints: { type: Number, min: 0, default: 0 },
+    badges: [
+      {
+        _id: false,
+        key: { type: String, enum: BADGES.map((badge) => badge.key) },
+        awardedAt: Date,
+        period: String,
+      },
+    ],
   },
   { timestamps: true },
 );

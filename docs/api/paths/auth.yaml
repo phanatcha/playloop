@@ -56,10 +56,11 @@ login:
   post:
     tags: [Auth]
     operationId: login
-    summary: Log in with email and password (FR-001, NFR-007)
+    summary: Log in with an email or username and a password (FR-001, NFR-007)
     description: |
-      Wrong email or password both return 401 "Email or password is incorrect".
-      Rate-limited per IP and per email. Suspended or banned users get 403 with the reason.
+      The email field accepts either an email address or a username.
+      Wrong email, username or password all return 401 "Email or password is incorrect".
+      Rate-limited per IP and per identifier. Suspended or banned users get 403 with the reason.
     security: []
     requestBody:
       required: true

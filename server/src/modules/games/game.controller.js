@@ -12,7 +12,7 @@ export async function createGame(req, res) {
 }
 
 export async function getGame(req, res) {
-  res.json(detail(req, await games.getGame(req.params.gameId, req.user?.id)));
+  res.json(detail(req, await games.getGame(req.params.gameId, req.user)));
 }
 
 export async function updateGame(req, res) {

@@ -4,12 +4,15 @@ export const ENGINES = ['unity', 'unreal', 'godot', 'gamemaker', 'other'];
 export const DEFAULT_GENRES = [
   'action',
   'adventure',
+  'exploration',
   'fantasy',
   'horror',
+  'mystery',
   'racing',
   'rpg',
   'shooter',
   'survival',
+  'tactical',
 ];
 
 export const GAME_STATUSES = ['draft', 'published'];

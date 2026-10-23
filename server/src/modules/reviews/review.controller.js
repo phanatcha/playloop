@@ -2,12 +2,16 @@ import * as reviews from './review.service.js';
 
 export async function startReview(req, res) {
   const { review, created } = await reviews.startReview(req.params.gameId, req.user.id);
-  res.status(created ? 201 : 200).json(reviews.toReview(review, req.user.id));
+  res.status(created ? 201 : 200).json(await reviews.toReview(review, req.user.id));
+}
+
+export async function listGameReviews(req, res) {
+  res.json(await reviews.listGameReviews(req.params.gameId, req.user?.id, req.query));
 }
 
 export async function getReview(req, res) {
-  const review = await reviews.getReview(req.params.reviewId, req.user?.id);
-  res.json(reviews.toReview(review, req.user?.id));
+  const review = await reviews.getReview(req.params.reviewId, req.user);
+  res.json(await reviews.toReview(review, req.user?.id));
 }
 
 export async function deleteReview(req, res) {
@@ -26,7 +30,7 @@ export async function acceptMission(req, res) {
     req.user.id,
     req.params.missionId,
   );
-  res.json(reviews.toPlaytestStage(review, true));
+  res.json(await reviews.toPlaytestStage(review, true));
 }
 
 export async function addCard(req, res) {
@@ -51,7 +55,7 @@ export async function deleteCard(req, res) {
 
 export async function savePlaytest(req, res) {
   const review = await reviews.savePlaytest(req.params.reviewId, req.user.id, req.body);
-  res.json(reviews.toPlaytestStage(review, true));
+  res.json(await reviews.toPlaytestStage(review, true));
 }
 
 export async function saveDeveloperAnswers(req, res) {
@@ -66,7 +70,7 @@ export async function saveFinalVerdict(req, res) {
 
 export async function submitReview(req, res) {
   const review = await reviews.submitReview(req.params.reviewId, req.user.id);
-  res.json(reviews.toReview(review, req.user.id));
+  res.json(await reviews.toReview(review, req.user.id));
 }
 
 export async function getFeedbackInbox(req, res) {
