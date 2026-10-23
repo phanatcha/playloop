@@ -38,7 +38,6 @@ const isOwner = (game, userId) => Boolean(userId) && game.owner._id.equals(userI
 
 export async function findOwnedGame(gameId, userId) {
   const game = await findGame(gameId);
-  if (game.hiddenAt) throw ApiError.notFound('Game not found');
   if (!isOwner(game, userId)) throw ApiError.forbidden();
   return game;
 }
@@ -51,7 +50,9 @@ export async function createGame(userId, { title }) {
 
 export async function getGame(gameId, user) {
   const game = await findGame(gameId);
-  if (game.hiddenAt && user?.role !== 'admin') throw ApiError.notFound('Game not found');
+  if (game.hiddenAt && user?.role !== 'admin' && !isOwner(game, user?.id)) {
+    throw ApiError.notFound('Game not found');
+  }
   const owner = await User.findById(game.owner._id).select('status');
   if (owner?.status === 'banned' && user?.role !== 'admin' && !isOwner(game, user?.id)) {
     throw ApiError.notFound('Game not found');

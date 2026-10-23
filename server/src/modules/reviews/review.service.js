@@ -105,7 +105,9 @@ export async function startReview(gameId, userId, origin = 'browse') {
 export async function getReview(reviewId, user) {
   const review = await loadReview(reviewId);
   if (review.removedAt) throw ApiError.notFound('Review not found');
-  if (review.hiddenAt && user?.role !== 'admin') throw ApiError.notFound('Review not found');
+  if (review.hiddenAt && user?.role !== 'admin' && !isReviewer(review, user?.id)) {
+    throw ApiError.notFound('Review not found');
+  }
   if (review.status === 'in_progress' && !isReviewer(review, user?.id)) {
     throw ApiError.notFound('Review not found');
   }
@@ -335,7 +337,7 @@ export async function getFeedbackInbox(gameId, userId, query) {
   const game = await findOwnedGame(gameId, userId);
   const page = query.page ?? 1;
   const limit = query.limit ?? 20;
-  const base = { game: game._id, status: 'submitted' };
+  const base = { game: game._id, status: 'submitted', hiddenAt: null, removedAt: null };
   const filter = { ...base, ...(query.status && { feedbackStatus: query.status }) };
 
   const [items, total, groups] = await Promise.all([
