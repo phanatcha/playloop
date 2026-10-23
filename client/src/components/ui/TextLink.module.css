@@ -5,6 +5,15 @@
   cursor: pointer;
 }
 
+.sm {
+  font: var(--playloop-type-body-small);
+}
+
+.underline {
+  text-decoration: underline;
+  text-underline-position: from-font;
+}
+
 .link:hover {
   text-decoration: underline;
 }

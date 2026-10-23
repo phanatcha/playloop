@@ -1,0 +1,15 @@
+/* Figma "Authentication content" (246:488): 632 px story, 80 px gap, 600 px form. */
+.page {
+  display: grid;
+  grid-template-columns: 632px 600px;
+  gap: 80px;
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .page {
+    grid-template-columns: minmax(0, 600px);
+    justify-content: center;
+    gap: var(--playloop-space-32);
+  }
+}

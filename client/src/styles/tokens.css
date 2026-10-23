@@ -63,6 +63,7 @@
   --playloop-radius-30: 30px;
   --playloop-radius-32: 32px;
   --playloop-radius-70: 70px;
+  --playloop-radius-100: 100px; /* Sign up / Log in glass form and artwork leaf */
 
   /* ---- Handoff supplements: colour ---- */
   --playloop-tint-pink: #ffd3df; /* "Found a Bug" and Horror tags */
