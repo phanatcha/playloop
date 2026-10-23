@@ -24,12 +24,14 @@ form.card {
   color: var(--playloop-deep-orange);
 }
 
+/* One line at desktop width. On a narrow card it wraps instead of running into the padding. */
 .switchFlow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--playloop-space-8);
-  white-space: nowrap;
+  text-align: center;
 }
 
 .prompt {

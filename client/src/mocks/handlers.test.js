@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { api, ApiError } from '../lib/api.js';
+import { MAX_LOGIN_FAILURES } from './db.js';
 
 // The mock handlers against the contract in docs/api/paths/auth.yaml.
 
@@ -124,6 +125,22 @@ describe('POST /auth/login', () => {
     expect(suspended).toMatchObject({ status: 403, code: 'FORBIDDEN' });
     expect(suspended.message).toContain('Repeated spam reports');
     expect(banned.message).toContain('Harassment of other users');
+  });
+
+  it('answers 429 after repeated failures for one email, even with the right password', async () => {
+    const wrong = { email: 'enola@example.com', password: 'not-the-password' };
+    for (let attempt = 0; attempt < MAX_LOGIN_FAILURES; attempt += 1) {
+      expect(await failure(api.post('/auth/login', wrong))).toMatchObject({ status: 401 });
+    }
+
+    const limited = await failure(
+      api.post('/auth/login', { email: 'enola@example.com', password: 'storm-chaser-42' }),
+    );
+    expect(limited).toMatchObject({ status: 429, code: 'RATE_LIMITED' });
+
+    // The limit is per email: another account is not affected.
+    const other = await api.post('/auth/register', valid);
+    expect(other.username).toBe('new_player');
   });
 
   it('answers 400 for a malformed email', async () => {
