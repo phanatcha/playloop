@@ -8,7 +8,7 @@ import styles from './AuthIntro.module.css';
 // 246:489): title, welcome line, the tactile artwork and the Play / Publish / Review tags.
 export function AuthIntro({ title, message }) {
   return (
-    <section className={styles.intro}>
+    <div className={styles.intro}>
       <div className={styles.titleFrame}>
         <h1 className={styles.title}>{title}</h1>
         <span className={`${styles.corner} ${styles.topLeft}`} aria-hidden="true" />
@@ -40,6 +40,6 @@ export function AuthIntro({ title, message }) {
           <Tag tone="lilac">Review</Tag>
         </li>
       </ul>
-    </section>
+    </div>
   );
 }

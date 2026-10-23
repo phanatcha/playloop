@@ -5,7 +5,7 @@ import { login } from '../../lib/auth.js';
 import { fieldErrorsFromDetails, validateLogIn } from '../../lib/authValidation.js';
 import { AuthCard, FormError, SwitchFlow } from './AuthCard.jsx';
 import { AuthPage } from './AuthPage.jsx';
-import { focusFirstInvalid, formMessage, isApiError } from './authErrors.js';
+import { focusFirstInvalid, formMessage, isValidationError } from './authErrors.js';
 import styles from './LogInPage.module.css';
 
 const FIELDS = ['email', 'password'];
@@ -46,12 +46,12 @@ export function LogInPage() {
       await login({ email: values.email.trim(), password: values.password });
       navigate('/', { replace: true });
     } catch (error) {
-      if (isApiError(error, 400)) {
+      if (isValidationError(error)) {
         const { byField, rest } = fieldErrorsFromDetails(error.details, FIELDS);
         showErrors(byField, rest.join(' ') || (Object.keys(byField).length ? '' : error.message));
       } else {
-        // 401 (wrong email or password), 403 (suspended or banned, with the reason), 429 and
-        // network failures all show as one message above the button.
+        // 401 (wrong email or password), 403 (suspended or banned, with the reason) and 429 show
+        // the API's message above the button; 5xx and network failures get a plain sentence.
         showErrors({}, formMessage(error));
       }
     } finally {

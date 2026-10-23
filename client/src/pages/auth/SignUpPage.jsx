@@ -3,21 +3,24 @@ import { Link, useNavigate } from 'react-router';
 import { Checkbox, PrimaryButton, TextField, TextLink } from '../../components/index.js';
 import { register } from '../../lib/auth.js';
 import { capitalize, fieldErrorsFromDetails, validateSignUp } from '../../lib/authValidation.js';
+import { cx } from '../../lib/cx.js';
 import { AuthCard, FormError, SwitchFlow } from './AuthCard.jsx';
 import { AuthPage } from './AuthPage.jsx';
 import {
   focusFirstInvalid,
   formMessage,
-  isApiError,
+  isConflictError,
+  isValidationError,
   usernameUnavailableMessage,
 } from './authErrors.js';
-import { useUsernameAvailability } from './useUsernameAvailability.js';
+import { USERNAME_CHECK_DELAY_MS, useUsernameAvailability } from './useUsernameAvailability.js';
 import styles from './SignUpPage.module.css';
 
 const FIELDS = ['username', 'email', 'password', 'acceptTerms'];
 
 // Sign up. Figma: sign up (232:699). API: POST /auth/register, GET /auth/username-available.
-export function SignUpPage() {
+// `usernameCheckDelay` is the pause after typing before the availability check is sent.
+export function SignUpPage({ usernameCheckDelay = USERNAME_CHECK_DELAY_MS }) {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const termsId = useId();
@@ -30,7 +33,7 @@ export function SignUpPage() {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const availability = useUsernameAvailability(values.username);
+  const availability = useUsernameAvailability(values.username, { delay: usernameCheckDelay });
 
   function update(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -50,10 +53,19 @@ export function SignUpPage() {
     if (submitting) return;
 
     const found = validateSignUp(values);
-    if (!found.username && availability.status === 'unavailable') {
-      found.username = usernameUnavailableMessage(availability.reason);
+    // A name the API already said is not available stops the submit. Every other state, including
+    // a check that failed or is still running, goes on to the server, which checks it again.
+    const unavailable = !found.username && availability.status === 'unavailable';
+    if (unavailable || Object.keys(found).length > 0) {
+      setErrors(found);
+      setFormError('');
+      focusFirstInvalid(
+        formRef.current,
+        FIELDS,
+        unavailable ? { ...found, username: true } : found,
+      );
+      return;
     }
-    if (Object.keys(found).length > 0) return showErrors(found);
 
     setSubmitting(true);
     try {
@@ -64,10 +76,10 @@ export function SignUpPage() {
       });
       navigate('/', { replace: true });
     } catch (error) {
-      if (isApiError(error, 400)) {
+      if (isValidationError(error)) {
         const { byField, rest } = fieldErrorsFromDetails(error.details, FIELDS);
         showErrors(byField, rest.join(' ') || (Object.keys(byField).length ? '' : error.message));
-      } else if (isApiError(error, 409)) {
+      } else if (isConflictError(error)) {
         // The spec's 409 does not say which value clashed, so the message decides where it shows.
         const field = /username/i.test(error.message)
           ? 'username'
@@ -84,44 +96,35 @@ export function SignUpPage() {
     }
   }
 
-  const usernameError =
-    errors.username ||
-    (availability.status === 'unavailable' ? usernameUnavailableMessage(availability.reason) : '');
+  const unavailable = availability.status === 'unavailable';
 
   return (
     <AuthPage title="Sign Up" message="Join PlayLoop to publish your games and review others.">
       <AuthCard ref={formRef} aria-label="Sign up" onSubmit={handleSubmit}>
-        <TextField
-          radius="sm"
-          name="username"
-          label="Username"
-          placeholder="Choose a username"
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          value={values.username}
-          onChange={(event) => update('username', event.target.value)}
-          error={usernameError}
-          hint={
-            <>
-              Letters, numbers and _ only.
-              <br />
-              This can’t be changed later.
-              {availability.status === 'checking' && (
-                <>
-                  <br />
-                  Checking…
-                </>
-              )}
-              {availability.status === 'available' && (
-                <>
-                  <br />
-                  Username is available.
-                </>
-              )}
-            </>
-          }
-        />
+        <div className={styles.usernameGroup}>
+          <TextField
+            radius="sm"
+            name="username"
+            label="Username"
+            placeholder="Choose a username"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={values.username}
+            onChange={(event) => update('username', event.target.value)}
+            error={errors.username}
+            keepHint
+            hint={
+              <>
+                Letters, numbers and _ only.
+                <br />
+                This can’t be changed later.
+              </>
+            }
+            {...(unavailable && { 'aria-invalid': true })}
+          />
+          <UsernameStatus availability={availability} hidden={Boolean(errors.username)} />
+        </div>
         <TextField
           radius="sm"
           name="email"
@@ -180,5 +183,38 @@ export function SignUpPage() {
         </SwitchFlow>
       </AuthCard>
     </AuthPage>
+  );
+}
+
+// Result of the live username check. It is always in the page (empty when there is nothing to say)
+// and is a polite live region, so a screen reader announces each change. A failed check says so
+// and offers "Try again"; it never claims the name is available.
+function UsernameStatus({ availability, hidden }) {
+  const { status, reason, retry } = availability;
+  let content = null;
+  if (!hidden) {
+    if (status === 'checking') content = 'Checking…';
+    else if (status === 'available') content = 'Username is available.';
+    else if (status === 'unavailable') content = usernameUnavailableMessage(reason);
+    else if (status === 'error') {
+      content = (
+        <>
+          We couldn’t check this username right now. We’ll check again when you sign up.{' '}
+          <TextLink as="button" type="button" size="sm" underline onClick={retry}>
+            Try again
+          </TextLink>
+        </>
+      );
+    }
+  }
+
+  return (
+    <p
+      role="status"
+      aria-live="polite"
+      className={cx(styles.status, !hidden && status === 'unavailable' && styles.statusError)}
+    >
+      {content}
+    </p>
   );
 }
