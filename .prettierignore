@@ -3,3 +3,4 @@ dist/
 coverage/
 .aws-sam/
 package-lock.json
+client/public/mockServiceWorker.js

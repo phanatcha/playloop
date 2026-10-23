@@ -1,0 +1,161 @@
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--playloop-space-16);
+  width: 100%;
+  min-width: 0;
+}
+
+/* "Title / glass corner markers": a glass frame with an orange square on each corner. */
+.titleFrame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 112px;
+  padding: var(--playloop-space-16) var(--playloop-space-32);
+  border: 3px solid var(--playloop-grid-line);
+}
+
+.title {
+  font: var(--playloop-type-display);
+  color: var(--playloop-text-inverse);
+  text-shadow: var(--playloop-shadow-title);
+}
+
+/* The orange-to-peach gradient has no Figma variable; values are copied from the frame. */
+.corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(to right, #ff3f00, #ffa082);
+}
+
+.topLeft {
+  top: -3px;
+  left: -3px;
+}
+
+.topRight {
+  top: -3px;
+  right: -3px;
+}
+
+.bottomLeft {
+  bottom: -3px;
+  left: -3px;
+}
+
+.bottomRight {
+  right: -3px;
+  bottom: -3px;
+}
+
+.message {
+  padding-inline: var(--playloop-space-32);
+  font: var(--playloop-type-body);
+  color: var(--playloop-text-inverse);
+  text-shadow: var(--playloop-shadow-text);
+}
+
+/* "Tactile PlayLoop artwork / glass leaf": 632 x 368 canvas with absolutely placed layers. */
+.artwork {
+  position: relative;
+  width: 632px;
+  max-width: 100%;
+  height: 368px;
+}
+
+.leaf {
+  position: absolute;
+  top: 24px;
+  left: 15px;
+  width: 602px;
+  height: 322px;
+  border: 1px solid var(--playloop-border-glass);
+  /* Leaf shape: top-left and bottom-right corners only. */
+  border-radius: var(--playloop-radius-100) 0;
+  background: var(--playloop-surface-card);
+}
+
+.lettering {
+  position: absolute;
+  top: 16px;
+  left: 24px;
+  width: 568px;
+  height: 340.8px;
+  object-fit: cover;
+  animation: float 2s linear infinite alternate;
+}
+
+/* Figma motion on "PLAYLOOP / original 3D lettering" (246:500): 26 px bob, 2 s, ping-pong. */
+@keyframes float {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.51, -0.009, 0.549, 1);
+  }
+
+  75% {
+    transform: translateY(-26px);
+    animation-timing-function: cubic-bezier(0.497, 0.014, 0.532, 1);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lettering {
+    animation: none;
+  }
+}
+
+.bubble {
+  position: absolute;
+  border: 1px solid var(--playloop-border-glass);
+  filter: drop-shadow(0 4px 15px rgb(0 0 0 / 25%));
+}
+
+.bubble img {
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  object-fit: cover;
+}
+
+.rouletteBubble {
+  top: 252px;
+  left: 4px;
+  width: 104px;
+  height: 104px;
+  border-radius: 52px;
+  background: var(--playloop-tint-lilac);
+}
+
+.publishBubble {
+  top: 4px;
+  left: 532px;
+  width: 96px;
+  height: 96px;
+  border-radius: 48px;
+  background: var(--playloop-tint-lime);
+}
+
+.tags {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--playloop-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Below the desktop width only the title and welcome line stay above the form. */
+@media (max-width: 1100px) {
+  .artwork,
+  .tags {
+    display: none;
+  }
+}

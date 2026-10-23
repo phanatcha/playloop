@@ -22,6 +22,10 @@
   color: var(--playloop-text-primary);
 }
 
+.controlSm {
+  border-radius: var(--playloop-radius-8);
+}
+
 .control::placeholder {
   color: var(--playloop-text-caption);
 }
