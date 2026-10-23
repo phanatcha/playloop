@@ -17,17 +17,17 @@ export const feedbackPoints = (status) =>
   ({ planned: pointsTable().feedbackPlanned, fixed: pointsTable().feedbackFixed })[status] ?? 0;
 
 export async function adjustReputation(userId, delta, event, session) {
-  if (!delta) return null;
+  if (!delta) return { applied: 0 };
   const user = await User.findById(userId).session(session);
-  if (!user) return null;
+  if (!user) return { applied: 0 };
   const before = user.reputationPoints;
   const after = Math.max(0, before + delta);
   const applied = after - before;
-  if (!applied) return { before, after, user };
+  if (!applied) return { before, after, applied: 0, user };
   user.reputationPoints = after;
   await user.save({ session });
   await ReputationEvent.create([{ user: userId, points: applied, ...event }], { session });
-  return { before, after, user };
+  return { before, after, applied, user };
 }
 
 export async function reverseReviewReputation(reviewId, session) {

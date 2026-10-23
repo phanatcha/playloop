@@ -363,19 +363,21 @@ export async function setFeedbackStatus(reviewId, userId, status) {
     throw ApiError.conflict('Only submitted reviews have a status');
   if (review.feedbackStatus === status) return review;
 
-  const delta = feedbackPoints(status) - feedbackPoints(review.feedbackStatus);
+  const desired = feedbackPoints(status);
+  const alreadyApplied = review.feedbackPointsApplied ?? 0;
   const link = `/games/${review.game._id}/reviews/${review._id}`;
   let progress = null;
   let badges = [];
   await mongoose.connection.transaction(async (session) => {
-    review.feedbackStatus = status;
-    await review.save({ session });
     progress = await adjustReputation(
       review.reviewer._id,
-      delta,
+      desired - alreadyApplied,
       { review: review._id, kind: `feedback_${status}` },
       session,
     );
+    review.feedbackStatus = status;
+    review.feedbackPointsApplied = alreadyApplied + (progress?.applied ?? 0);
+    await review.save({ session });
     badges = await awardAchievements(review.reviewer._id, session);
     await notifyProgress(
       review.reviewer._id,

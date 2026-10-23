@@ -53,6 +53,7 @@ const reviewSchema = new mongoose.Schema(
       completedAt: Date,
     },
     feedbackStatus: { type: String, enum: FEEDBACK_STATUSES, default: 'new' },
+    feedbackPointsApplied: { type: Number, default: 0 },
     helpfulCount: { type: Number, default: 0 },
     notHelpfulCount: { type: Number, default: 0 },
     replyCount: { type: Number, default: 0 },

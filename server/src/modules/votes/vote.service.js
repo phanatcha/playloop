@@ -34,31 +34,36 @@ async function applyVote(review, userId, nextValue) {
     const previous = existing?.value ?? null;
     if (previous === nextValue) return;
 
-    const pointsFor = (value) => (value == null ? 0 : votePoints(value));
-    const delta = pointsFor(nextValue) - pointsFor(previous);
-    if (nextValue == null) await existing.deleteOne({ session });
-    else if (existing) {
-      existing.value = nextValue;
-      await existing.save({ session });
-    } else {
-      await Vote.create([{ user: userId, review: review._id, value: nextValue }], { session });
-    }
-
-    const helpfulDelta = (nextValue === 1 ? 1 : 0) - (previous === 1 ? 1 : 0);
-    const notHelpfulDelta = (nextValue === -1 ? 1 : 0) - (previous === -1 ? 1 : 0);
-    review.helpfulCount += helpfulDelta;
-    review.notHelpfulCount += notHelpfulDelta;
-    await review.save({ session });
-
+    const desired = nextValue == null ? 0 : votePoints(nextValue);
+    const alreadyApplied = existing?.appliedPoints ?? 0;
     progress = await adjustReputation(
       review.reviewer._id,
-      delta,
+      desired - alreadyApplied,
       {
         review: review._id,
         kind: nextValue === 1 ? 'helpful' : nextValue === -1 ? 'not_helpful' : 'vote_removed',
       },
       session,
     );
+    const appliedPoints = alreadyApplied + (progress?.applied ?? 0);
+    if (nextValue == null) await existing.deleteOne({ session });
+    else if (existing) {
+      existing.value = nextValue;
+      existing.appliedPoints = appliedPoints;
+      await existing.save({ session });
+    } else {
+      await Vote.create([{ user: userId, review: review._id, value: nextValue, appliedPoints }], {
+        session,
+      });
+    }
+
+    const [helpfulCount, notHelpfulCount] = await Promise.all([
+      Vote.countDocuments({ review: review._id, value: 1 }).session(session),
+      Vote.countDocuments({ review: review._id, value: -1 }).session(session),
+    ]);
+    review.helpfulCount = helpfulCount;
+    review.notHelpfulCount = notHelpfulCount;
+    await review.save({ session });
     const badges = await awardAchievements(review.reviewer._id, session);
     await notifyProgress(
       review.reviewer._id,

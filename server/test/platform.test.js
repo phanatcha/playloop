@@ -121,6 +121,23 @@ describe('votes, roulette, reports and admin', () => {
       .set(as(reviewer))
       .send({ targetType: 'game', targetId: game._id.toString(), reason: 'spam' });
     expect(filed.status).toBe(201);
+
+    const reply = await request(app)
+      .post(`/api/reviews/${review._id}/replies`)
+      .set(as(dev))
+      .send({ body: 'The facility markers land in 0.2.' });
+    expect(reply.status).toBe(201);
+    expect(reply.body.isGameOwner).toBe(true);
+
+    const accepted = await request(app)
+      .post('/api/roulette/accept')
+      .set(as(stranger))
+      .send({ spinToken: match.body.spinToken });
+    expect(accepted.status).toBe(201);
+    expect(accepted.body.origin).toBe('roulette');
+
+    const bell = await request(app).get('/api/me/notifications/unread-count').set(as(reviewer));
+    expect(bell.body.count).toBeGreaterThan(0);
   });
 
   it('keeps admin stats and settings to admins', async () => {
