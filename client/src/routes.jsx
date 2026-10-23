@@ -1,0 +1,62 @@
+import { createBrowserRouter } from 'react-router';
+import { AppLayout } from './components/layout/AppLayout.jsx';
+import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage.jsx';
+import { PlaceholderPage } from './pages/PlaceholderPage.jsx';
+
+// Route map for the high-fidelity screens. Each placeholder names the Figma frame it should be
+// built from; swap the element for the real page when it lands.
+const screens = [
+  { index: true, title: 'Explore Games', figmaNode: '47:27' },
+  { path: 'games/:gameId', title: 'Game description', figmaNode: '167:980' },
+  { path: 'games/:gameId/review', title: 'Review a game', figmaNode: '281:685' },
+  { path: 'reviews/:reviewId', title: 'Published review', figmaNode: '318:860' },
+  { path: 'roulette', title: 'Playtest Roulette', figmaNode: '356:1636' },
+  { path: 'my-games', title: 'My Games', figmaNode: '255:503' },
+  { path: 'my-games/new', title: 'Publish a game', figmaNode: '272:630' },
+  { path: 'my-games/:gameId', title: 'Published game', figmaNode: '257:515' },
+  { path: 'my-games/:gameId/edit', title: 'Edit game', figmaNode: '272:630' },
+  { path: 'users/:username', title: 'Public profile', figmaNode: '210:225' },
+  { path: 'settings/profile', title: 'Edit profile', figmaNode: '210:300' },
+  { path: 'login', title: 'Log in', figmaNode: '232:744' },
+  { path: 'signup', title: 'Sign up', figmaNode: '232:699' },
+  { path: 'admin', title: 'Admin: Dashboard', figmaNode: '375:1089' },
+  { path: 'admin/reports', title: 'Admin: Report Queue', figmaNode: '405:1475' },
+  { path: 'admin/moderation', title: 'Admin: Content Moderation', figmaNode: '405:1523' },
+  { path: 'admin/users', title: 'Admin: User Management', figmaNode: '405:1571' },
+  { path: 'admin/featured', title: 'Admin: Feature Games', figmaNode: '410:1481' },
+  { path: 'admin/settings', title: 'Admin: Configuration', figmaNode: '410:1529' },
+];
+
+// Dev-only gallery of every base component with sample content.
+const devRoutes = import.meta.env.DEV
+  ? [
+      {
+        path: 'dev/components',
+        lazy: async () => ({
+          Component: (await import('./dev/ComponentGallery.jsx')).ComponentGallery,
+        }),
+      },
+    ]
+  : [];
+
+export const routes = [
+  {
+    element: <AppLayout />,
+    children: [
+      {
+        // Pathless boundary so errors render inside the shell instead of replacing it.
+        errorElement: <RouteErrorPage />,
+        children: [
+          ...screens.map(({ title, figmaNode, ...route }) => ({
+            ...route,
+            element: <PlaceholderPage title={title} figmaNode={figmaNode} />,
+          })),
+          ...devRoutes,
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+    ],
+  },
+];
+
+export const router = createBrowserRouter(routes);

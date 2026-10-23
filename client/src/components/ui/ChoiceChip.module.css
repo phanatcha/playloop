@@ -1,0 +1,22 @@
+/* Figma uses KoHo 16 px here, a documented legacy exception. Kode Mono is used until the
+   typography is resolved. */
+.chip {
+  display: inline-flex;
+  align-items: flex-start;
+  padding: var(--playloop-space-8) var(--playloop-space-14);
+  border: 0;
+  border-radius: 0 var(--playloop-radius-8);
+  background: #a8a8a8;
+  font: 500 16px / normal var(--playloop-font-mono);
+  color: #000;
+  white-space: nowrap;
+}
+
+.selected {
+  background: var(--playloop-accent-orange);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

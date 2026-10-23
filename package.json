@@ -13,8 +13,12 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @playloop/server",
+    "dev:client": "npm run dev -w @playloop/client",
     "start": "npm start -w @playloop/server",
     "test": "npm test -w @playloop/server",
+    "test:client": "npm test -w @playloop/client",
+    "build:client": "npm run build -w @playloop/client",
+    "lint:client": "npm run lint -w @playloop/client",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
