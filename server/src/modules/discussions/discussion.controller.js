@@ -1,35 +1,15 @@
 import * as discussions from './discussion.service.js';
 
 export async function listReplies(req, res) {
-  const { review, reactions, ...page } = await discussions.listReplies(
-    req.params.reviewId,
-    req.user?.id,
-    req.query,
-  );
-  res.json({
-    ...page,
-    items: page.items.map((reply) =>
-      discussions.toReply(reply, review, reactions.get(reply.id) ?? []),
-    ),
-  });
+  res.json(await discussions.listReplies(req.params.reviewId, req.user?.id, req.query));
 }
 
 export async function createReply(req, res) {
-  const { reply, review } = await discussions.createReply(
-    req.params.reviewId,
-    req.user.id,
-    req.body.body,
-  );
-  res.status(201).json(discussions.toReply(reply, review));
+  res.status(201).json(await discussions.createReply(req.params.reviewId, req.user.id, req.body));
 }
 
 export async function updateReply(req, res) {
-  const { reply, review, reactions } = await discussions.updateReply(
-    req.params.replyId,
-    req.user.id,
-    req.body.body,
-  );
-  res.json(discussions.toReply(reply, review, reactions));
+  res.json(await discussions.updateReply(req.params.replyId, req.user.id, req.body));
 }
 
 export async function deleteReply(req, res) {
@@ -38,11 +18,23 @@ export async function deleteReply(req, res) {
 }
 
 export async function addReaction(req, res) {
-  const { targetType, targetId, emoji } = req.params;
-  res.json(await discussions.addReaction(targetType, targetId, emoji, req.user.id));
+  res.json(
+    await discussions.addReaction(
+      req.params.targetType,
+      req.params.targetId,
+      req.params.emoji,
+      req.user.id,
+    ),
+  );
 }
 
 export async function removeReaction(req, res) {
-  const { targetType, targetId, emoji } = req.params;
-  res.json(await discussions.removeReaction(targetType, targetId, emoji, req.user.id));
+  res.json(
+    await discussions.removeReaction(
+      req.params.targetType,
+      req.params.targetId,
+      req.params.emoji,
+      req.user.id,
+    ),
+  );
 }

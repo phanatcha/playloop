@@ -53,12 +53,12 @@ describe('GET /games/{gameId}/reviews', () => {
     expect(v1.body.items.map((r) => r.id)).toEqual([old.id]);
   });
 
-  it('hides the reviews of a draft game from everyone but the owner', async () => {
+  it('hides the reviews of a draft game, the owner uses the Feedback Inbox instead', async () => {
     const draft = await createPublishedGame(dev, { status: 'draft' });
     expect((await request(app).get(`/api/games/${draft._id}/reviews`)).status).toBe(404);
     const owner = await request(app)
       .get(`/api/games/${draft._id}/reviews`)
       .set({ Cookie: authCookie(dev) });
-    expect(owner.status).toBe(200);
+    expect(owner.status).toBe(404);
   });
 });

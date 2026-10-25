@@ -18,7 +18,11 @@ LoginInput:
   required: [email, password]
   properties:
     email:
-      $ref: common.yaml#/Email
+      type: string
+      description: Email address or username
+      minLength: 1
+      maxLength: 254
+      example: enola@example.com
     password:
       type: string
       format: password

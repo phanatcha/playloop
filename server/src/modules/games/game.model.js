@@ -54,6 +54,9 @@ const gameSchema = new mongoose.Schema(
     },
     reviewCount: { type: Number, default: 0 },
     publishedAt: { type: Date, default: null },
+    hiddenAt: { type: Date, default: null },
+    removedAt: { type: Date, default: null },
+    moderationReason: { type: String, default: null },
   },
   { timestamps: true },
 );

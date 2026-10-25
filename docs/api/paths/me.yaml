@@ -3,7 +3,7 @@ me:
     tags: [Me]
     operationId: getMe
     summary: Get the logged-in user (FR-001)
-    description: Use it on app start to know if the user is logged in (401 when not).
+    description: Use it on app start to know if the user is logged in (401 when not). A suspended or banned account gets 403.
     responses:
       '200':
         description: The logged-in user
@@ -13,6 +13,8 @@ me:
               $ref: ../schemas/user.yaml#/Me
       '401':
         $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
   patch:
     tags: [Me]
     operationId: updateMe

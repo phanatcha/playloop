@@ -17,7 +17,14 @@ export function createApp() {
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/api/health' } }));
   app.use(helmet());
   app.use(cors({ origin: env.clientOrigins, credentials: true }));
-  app.use(express.json({ limit: '1mb' }));
+  app.use(
+    express.json({
+      limit: '1mb',
+      verify: (req, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
   app.use(cookieParser());
 
   if (!env.isProduction) app.use('/api/docs', apiDocs());
