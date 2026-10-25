@@ -19,6 +19,7 @@ export const env = Object.freeze({
     playBucket: read('S3_PLAY_BUCKET'),
     mediaCdnUrl: read('MEDIA_CDN_URL'),
     playCdnUrl: read('PLAY_CDN_URL'),
+    buildUnzipFunction: read('BUILD_UNZIP_FUNCTION'),
   },
   internalWebhookSecret: read('INTERNAL_WEBHOOK_SECRET'),
   payment: {

@@ -3,5 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Validates and extracts uploaded web build zips into the play bucket"
+  "description": "Validates and extracts uploaded web build zips into the play bucket",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "yauzl": "^3.4.0"
+  }
 }

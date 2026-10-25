@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "npm run dev -w @playloop/server",
     "start": "npm start -w @playloop/server",
-    "test": "npm test -w @playloop/server",
+    "test": "npm test -w @playloop/server -w @playloop/lambda-build-unzip",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -1,0 +1,259 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: PlayLoop storage, CDN and web build processing
+
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+    Default: dev
+  ClientOrigins:
+    Type: CommaDelimitedList
+    Description: Frontend origins allowed to upload straight to S3, e.g. https://main.d123.amplifyapp.com
+  ApiUrl:
+    Type: String
+    Description: Base URL of the API that the unzip Lambda calls back, e.g. https://abc.ap-southeast-1.awsapprunner.com
+  InternalWebhookSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Same value as INTERNAL_WEBHOOK_SECRET on the API
+
+Resources:
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub playloop-${Env}-media-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: !Ref ClientOrigins
+            AllowedMethods: [GET, PUT, HEAD]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  BuildsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub playloop-${Env}-builds-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: !Ref ClientOrigins
+            AllowedMethods: [GET, PUT, HEAD]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  PlayBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub playloop-${Env}-play-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  MediaOriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub playloop-${Env}-media
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  PlayOriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub playloop-${Env}-play
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  MediaDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub PlayLoop ${Env} media
+        HttpVersion: http2and3
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: media
+            DomainName: !GetAtt MediaBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt MediaOriginAccess.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: media
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+
+  PlayDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub PlayLoop ${Env} web builds (separate domain so game code can't reach the app)
+        HttpVersion: http2and3
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: play
+            DomainName: !GetAtt PlayBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt PlayOriginAccess.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: play
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${MediaBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${MediaDistribution}
+
+  PlayBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PlayBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${PlayBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${PlayDistribution}
+
+  BuildUnzipLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/playloop-${Env}-build-unzip
+      RetentionInDays: 14
+
+  BuildUnzipFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: BuildUnzipLogs
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Format: esm
+        Target: es2022
+        OutExtension:
+          - .js=.mjs
+        EntryPoints:
+          - src/index.js
+        External:
+          - '@aws-sdk/*'
+        Banner:
+          - js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);
+    Properties:
+      FunctionName: !Sub playloop-${Env}-build-unzip
+      CodeUri: ../lambdas/build-unzip
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 2048
+      Timeout: 900
+      EphemeralStorage:
+        Size: 10240
+      Environment:
+        Variables:
+          PLAY_BUCKET: !Ref PlayBucket
+          API_URL: !Ref ApiUrl
+          INTERNAL_WEBHOOK_SECRET: !Ref InternalWebhookSecret
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref BuildsBucket
+        - S3WritePolicy:
+            BucketName: !Ref PlayBucket
+      EventInvokeConfig:
+        MaximumRetryAttempts: 1
+
+  ApiAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub playloop-${Env}-api
+      Description: Attach to the App Runner instance role
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:AbortMultipartUpload
+              - s3:ListMultipartUploadParts
+            Resource:
+              - !Sub ${MediaBucket.Arn}/*
+              - !Sub ${BuildsBucket.Arn}/*
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource: !GetAtt BuildUnzipFunction.Arn
+
+Outputs:
+  MediaBucket:
+    Description: S3_MEDIA_BUCKET
+    Value: !Ref MediaBucket
+  BuildsBucket:
+    Description: S3_BUILDS_BUCKET
+    Value: !Ref BuildsBucket
+  PlayBucket:
+    Description: S3_PLAY_BUCKET
+    Value: !Ref PlayBucket
+  MediaCdnUrl:
+    Description: MEDIA_CDN_URL
+    Value: !Sub https://${MediaDistribution.DomainName}
+  PlayCdnUrl:
+    Description: PLAY_CDN_URL
+    Value: !Sub https://${PlayDistribution.DomainName}
+  BuildUnzipFunction:
+    Description: BUILD_UNZIP_FUNCTION
+    Value: !Ref BuildUnzipFunction
+  ApiAccessPolicyArn:
+    Description: Attach to the App Runner instance role
+    Value: !Ref ApiAccessPolicy
