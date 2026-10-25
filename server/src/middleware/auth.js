@@ -5,8 +5,31 @@ import { ApiError } from '../utils/ApiError.js';
 
 export const SESSION_COOKIE = 'playloop_token';
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const cookieOptions = () => ({
+  httpOnly: true,
+  secure: env.isProduction,
+  sameSite: 'lax',
+  path: '/',
+});
+
 export function signSessionToken(user) {
   return jwt.sign({ sub: user._id.toString() }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
+}
+
+export function setSessionCookie(res, user) {
+  res.cookie(SESSION_COOKIE, signSessionToken(user), { ...cookieOptions(), maxAge: WEEK_MS });
+}
+
+export function clearSessionCookie(res) {
+  res.clearCookie(SESSION_COOKIE, cookieOptions());
+}
+
+export async function requireAdmin(req, res, next) {
+  await requireAuth(req, res, () => {});
+  if (req.user.role !== 'admin') throw ApiError.forbidden();
+  next();
 }
 
 async function loadUser(req) {
@@ -20,7 +43,7 @@ async function loadUser(req) {
   }
 }
 
-function blockedReason(user) {
+export function accountBlockMessage(user) {
   if (user.status === 'banned') return 'Your account has been banned';
   if (user.status !== 'suspended') return null;
   const until = user.suspension?.until;
@@ -33,7 +56,7 @@ function blockedReason(user) {
 export async function requireAuth(req, _res, next) {
   const user = await loadUser(req);
   if (!user) throw ApiError.unauthorized();
-  const reason = blockedReason(user);
+  const reason = accountBlockMessage(user);
   if (reason) throw ApiError.forbidden(reason);
   req.user = { id: user._id.toString(), role: user.role };
   next();
@@ -41,6 +64,7 @@ export async function requireAuth(req, _res, next) {
 
 export async function optionalAuth(req, _res, next) {
   const user = await loadUser(req);
-  req.user = user && !blockedReason(user) ? { id: user._id.toString(), role: user.role } : null;
+  req.user =
+    user && !accountBlockMessage(user) ? { id: user._id.toString(), role: user.role } : null;
   next();
 }

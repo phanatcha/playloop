@@ -58,7 +58,7 @@ describe('triggers', () => {
       type: 'review_received',
       read: false,
       message: 'Kai reviewed Tempest',
-      link: `/my-games/${game.id}/feedback?review=${review.id}`,
+      link: `/games/${game.id}/reviews/${review.id}`,
       actor: { id: reviewer.id },
       game: { id: game.id, title: 'Tempest' },
       reviewId: review.id,
@@ -73,9 +73,9 @@ describe('triggers', () => {
       .send({ status: 'planned' });
 
     const { body } = await inbox(reviewer);
-    expect(body.items[0]).toMatchObject({
-      type: 'feedback_status_changed',
-      message: 'Enola marked your review of Tempest as Planned',
+    expect(body.items.find((n) => n.type === 'feedback_status_changed')).toMatchObject({
+      message: 'Tempest: your feedback is now planned',
+      actor: { id: dev.id },
     });
   });
 

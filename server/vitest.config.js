@@ -12,6 +12,8 @@ export default defineConfig({
       JWT_SECRET: 'test-secret',
       CLIENT_ORIGIN: 'http://localhost:5173',
       MEDIA_CDN_URL: 'http://media.test',
+      PLAY_CDN_URL: 'http://play.test/playloop-local-play',
+      INTERNAL_WEBHOOK_SECRET: 'test-webhook-secret',
     },
   },
 });

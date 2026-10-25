@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { optionalAuth, requireAuth } from '../../middleware/auth.js';
+import { rateLimit } from '../../middleware/rateLimit.js';
+import * as discussions from '../discussions/discussion.controller.js';
+import * as votes from '../votes/vote.service.js';
 import * as controller from './review.controller.js';
+
+const MINUTE = 60 * 1000;
 
 export const gameReviewRoutes = Router({ mergeParams: true });
 
@@ -25,6 +30,34 @@ reviewRoutes.put('/:reviewId/developer-answers', requireAuth, controller.saveDev
 reviewRoutes.put('/:reviewId/final-verdict', requireAuth, controller.saveFinalVerdict);
 reviewRoutes.post('/:reviewId/submit', requireAuth, controller.submitReview);
 reviewRoutes.put('/:reviewId/feedback-status', requireAuth, controller.setFeedbackStatus);
+reviewRoutes.put(
+  '/:reviewId/vote',
+  requireAuth,
+  rateLimit({
+    name: 'vote',
+    limit: 60,
+    windowMs: 10 * MINUTE,
+    key: (req) => [`user:${req.user.id}`],
+  }),
+  async (req, res) => {
+    res.json(await votes.setVote(req.params.reviewId, req.user.id, req.body.value));
+  },
+);
+reviewRoutes.delete('/:reviewId/vote', requireAuth, async (req, res) => {
+  res.json(await votes.removeVote(req.params.reviewId, req.user.id));
+});
+reviewRoutes.get('/:reviewId/replies', optionalAuth, discussions.listReplies);
+reviewRoutes.post(
+  '/:reviewId/replies',
+  requireAuth,
+  rateLimit({
+    name: 'reply',
+    limit: 30,
+    windowMs: 10 * MINUTE,
+    key: (req) => [`user:${req.user.id}`],
+  }),
+  discussions.createReply,
+);
 
 export const myReviewRoutes = Router();
 

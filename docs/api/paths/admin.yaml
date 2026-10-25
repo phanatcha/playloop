@@ -90,7 +90,7 @@ hideContent:
     tags: [Admin]
     operationId: hideContent
     summary: Hide a game, review or reply
-    description: Admin only. Hidden content disappears for everyone except admins and can be restored. The owner is notified with the reason.
+    description: Admin only. Hidden content leaves Browse, Roulette and public lists. The author and admins can still open it, and it can be restored. The owner is notified with the reason.
     parameters:
       - $ref: ../parameters.yaml#/ModerationTargetType
       - $ref: ../parameters.yaml#/ModerationTargetId

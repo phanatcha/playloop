@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { Review } from '../src/modules/reviews/review.model.js';
-import { Reply } from '../src/modules/discussions/reply.model.js';
-import { Reaction } from '../src/modules/discussions/reaction.model.js';
+import { Reaction, Reply } from '../src/modules/discussions/discussion.model.js';
 import { authCookie, createPublishedGame, createSubmittedReview, createUser } from './helpers.js';
 
 const app = createApp();
@@ -53,7 +52,7 @@ describe('replies', () => {
   it("doesn't allow replies on unsubmitted reviews", async () => {
     const draft = await Review.findByIdAndUpdate(review._id, { status: 'in_progress' });
     expect((await reply(reader, 'Hi', draft._id)).status).toBe(404);
-    expect((await reply(reviewer, 'Hi', draft._id)).status).toBe(403);
+    expect((await reply(reviewer, 'Hi', draft._id)).status).toBe(404);
   });
 
   it('only lets the author edit or delete a reply', async () => {
