@@ -129,55 +129,52 @@ export async function notifyProgress(userId, { before, after, badges }, link, se
   }
 }
 
-export async function syncRankingBadges(period) {
+async function syncHallOfFame() {
   const config = await getConfig();
-  if (period !== 'month') {
-    const definition = config.badges.find((badge) => badge.key === 'hall_of_fame' && badge.active);
-    if (!definition) return;
-    const top = await User.find({ reputationPoints: { $gt: 0 }, status: { $ne: 'banned' } })
-      .sort({ reputationPoints: -1, createdAt: 1 })
-      .limit(definition.threshold ?? 10);
-    const ids = new Set(top.map((user) => user._id.toString()));
-    const holders = await User.find({ 'badges.key': 'hall_of_fame' });
-    for (const user of holders) {
-      if (ids.has(user._id.toString())) continue;
-      user.badges = user.badges.filter((badge) => badge.key !== 'hall_of_fame');
-      await user.save();
-    }
-    for (const user of top) {
-      if (user.badges.some((badge) => badge.key === 'hall_of_fame')) continue;
-      user.badges.push({ key: 'hall_of_fame', awardedAt: new Date() });
-      await user.save();
-      await notify({
-        user: user._id,
-        type: 'badge_awarded',
-        message: 'You earned the Hall of Fame badge',
-        link: '/leaderboard',
-      });
-    }
-    return;
+  const definition = config.badges.find((badge) => badge.key === 'hall_of_fame' && badge.active);
+  if (!definition) return;
+  const top = await User.find({ reputationPoints: { $gt: 0 }, status: { $ne: 'banned' } })
+    .sort({ reputationPoints: -1, createdAt: 1 })
+    .limit(definition.threshold ?? 10);
+  await User.updateMany(
+    { 'badges.key': 'hall_of_fame', _id: { $nin: top.map((user) => user._id) } },
+    { $pull: { badges: { key: 'hall_of_fame' } } },
+  );
+  for (const user of top) {
+    if (user.badges.some((badge) => badge.key === 'hall_of_fame')) continue;
+    user.badges.push({ key: 'hall_of_fame', awardedAt: new Date() });
+    await user.save();
+    await notify({
+      user: user._id,
+      type: 'badge_awarded',
+      message: 'You earned the Hall of Fame badge',
+      link: '/leaderboard',
+    });
   }
+}
 
+// shortcut: runs lazily on leaderboard views, call it from the monthly-badges Lambda once that exists
+export async function awardReviewerOfTheMonth() {
+  const config = await getConfig();
   const definition = config.badges.find(
     (badge) => badge.key === 'reviewer_of_the_month' && badge.active,
   );
   if (!definition) return;
-  const [leader] = await monthStandings(1);
-  if (!leader || leader.points <= 0) return;
-  const periodKey = currentMonth();
-  const user = await User.findById(leader._id);
-  if (
-    !user ||
-    user.badges.some((badge) => badge.key === definition.key && badge.period === periodKey)
-  ) {
-    return;
-  }
-  user.badges.push({ key: definition.key, awardedAt: new Date(), period: periodKey });
-  await user.save();
+  const period = previousMonth();
+  const awarded = { key: definition.key, period };
+  if (await User.exists({ badges: { $elemMatch: awarded } })) return;
+
+  const [leader] = await monthStandings(1, period);
+  if (!leader) return;
+  const { modifiedCount } = await User.updateOne(
+    { _id: leader._id, badges: { $not: { $elemMatch: awarded } } },
+    { $push: { badges: { ...awarded, awardedAt: new Date() } } },
+  );
+  if (!modifiedCount) return;
   await notify({
-    user: user._id,
+    user: leader._id,
     type: 'badge_awarded',
-    message: 'You earned Reviewer of the Month',
+    message: `You earned Reviewer of the Month for ${period}`,
     link: '/leaderboard',
   });
 }
@@ -186,14 +183,16 @@ function currentMonth(date = new Date()) {
   return date.toISOString().slice(0, 7);
 }
 
-function monthStart(month = currentMonth()) {
+function monthStart(month = currentMonth(), offset = 0) {
   const [year, mon] = month.split('-').map(Number);
-  return new Date(Date.UTC(year, mon - 1, 1));
+  return new Date(Date.UTC(year, mon - 1 + offset, 1));
 }
 
-async function monthStandings(limit) {
+const previousMonth = () => currentMonth(monthStart(currentMonth(), -1));
+
+async function monthStandings(limit, month = currentMonth()) {
   return ReputationEvent.aggregate([
-    { $match: { createdAt: { $gte: monthStart() } } },
+    { $match: { createdAt: { $gte: monthStart(month), $lt: monthStart(month, 1) } } },
     { $group: { _id: '$user', points: { $sum: '$points' } } },
     { $match: { points: { $gt: 0 } } },
     { $sort: { points: -1 } },
@@ -202,7 +201,8 @@ async function monthStandings(limit) {
 }
 
 export async function getLeaderboard(period = 'all_time', limit = 10) {
-  await syncRankingBadges(period);
+  await syncHallOfFame();
+  await awardReviewerOfTheMonth();
   if (period === 'month') {
     const rows = await monthStandings(limit);
     const users = await User.find({ _id: { $in: rows.map((row) => row._id) } }).select(
