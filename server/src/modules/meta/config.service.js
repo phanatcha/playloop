@@ -51,8 +51,12 @@ export function runtimeConfig() {
 export async function getConfig() {
   const existing = await Config.findById('config');
   if (existing) return remember(existing);
-  const created = await Config.create(defaults());
-  return remember(created);
+  try {
+    return remember(await Config.create(defaults()));
+  } catch (err) {
+    if (err.code !== 11000) throw err;
+    return remember(await Config.findById('config'));
+  }
 }
 
 export function activeGenreKeys() {
