@@ -12,7 +12,7 @@ export async function createGame(req, res) {
 }
 
 export async function getGame(req, res) {
-  res.json(detail(req, await games.getGame(req.params.gameId, req.user?.id)));
+  res.json(detail(req, await games.getGame(req.params.gameId, req.user)));
 }
 
 export async function updateGame(req, res) {
@@ -43,9 +43,4 @@ export async function updateForm(req, res) {
 export async function listMyGames(req, res) {
   const result = await games.listMyGames(req.user.id, req.query);
   res.json({ ...result, items: result.items.map(games.toMyGameItem) });
-}
-
-export async function listRecommendations(req, res) {
-  const items = await games.listRecommendations(req.user?.id, req.query.limit ?? 5);
-  res.json({ items: items.map(games.toGameCard) });
 }

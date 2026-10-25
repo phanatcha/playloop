@@ -18,7 +18,13 @@ export const LEVELS = [
 
 export function levelFor(points, levels = LEVELS) {
   const index = levels.findLastIndex((level) => points >= level.minPoints);
-  return { ...levels[index], nextLevelMinPoints: levels[index + 1]?.minPoints ?? null };
+  const current = levels[Math.max(index, 0)];
+  return {
+    level: current.level,
+    title: current.title,
+    minPoints: current.minPoints,
+    nextLevelMinPoints: levels[index + 1]?.minPoints ?? null,
+  };
 }
 
 export const BADGES = [
