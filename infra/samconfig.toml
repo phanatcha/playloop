@@ -1,0 +1,19 @@
+version = 0.1
+
+[dev.global.parameters]
+stack_name = "playloop-dev"
+region = "ap-southeast-1"
+
+[dev.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+resolve_s3 = true
+confirm_changeset = true
+
+[prod.global.parameters]
+stack_name = "playloop-prod"
+region = "ap-southeast-1"
+
+[prod.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+resolve_s3 = true
+confirm_changeset = true

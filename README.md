@@ -68,3 +68,7 @@ curl.exe http://localhost:4000/api/health
 curl.exe -c cookies.txt -H "Content-Type: application/json" -d "{\"username\":\"ada\",\"email\":\"ada@example.com\",\"password\":\"password123\",\"acceptTerms\":true}" http://localhost:4000/api/auth/register
 curl.exe -b cookies.txt http://localhost:4000/api/me
 ```
+
+## Deploy to AWS
+
+See [infra/README.md](infra/README.md) for the step-by-step deploy (Atlas, SAM stack, App Runner, Amplify).
