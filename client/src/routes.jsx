@@ -6,6 +6,9 @@ import { MyGamesPage } from './features/games/MyGamesPage.jsx';
 import { FormBuilderPage } from './features/forms/FormBuilderPage.jsx';
 import { FeedbackInboxPage } from './features/feedback/FeedbackInboxPage.jsx';
 import { ReviewsPage, PublishedReviewPage } from './features/reviews/ReviewsPage.jsx';
+import { AuthNavigation } from './pages/auth/AuthNavigation.jsx';
+import { LogInPage } from './pages/auth/LogInPage.jsx';
+import { SignUpPage } from './pages/auth/SignUpPage.jsx';
 
 // Route map for the high-fidelity screens. Each placeholder names the Figma frame it should be
 // built from; swap the element for the real page when it lands.
@@ -21,8 +24,6 @@ const screens = [
   { path: 'my-games/:gameId/edit', title: 'Edit game', figmaNode: '272:630' },
   { path: 'users/:username', title: 'Public profile', figmaNode: '210:225' },
   { path: 'settings/profile', title: 'Edit profile', figmaNode: '210:300' },
-  { path: 'login', title: 'Log in', figmaNode: '232:744' },
-  { path: 'signup', title: 'Sign up', figmaNode: '232:699' },
   { path: 'admin', title: 'Admin: Dashboard', figmaNode: '375:1089' },
   { path: 'admin/reports', title: 'Admin: Report Queue', figmaNode: '405:1475' },
   { path: 'admin/moderation', title: 'Admin: Content Moderation', figmaNode: '405:1523' },
@@ -44,6 +45,19 @@ const devRoutes = import.meta.env.DEV
   : [];
 
 export const routes = [
+  {
+    // Sign up and Log in share the shell but use their own header (Figma 232:699 and 232:744).
+    element: <AppLayout navigation={<AuthNavigation />} />,
+    children: [
+      {
+        errorElement: <RouteErrorPage />,
+        children: [
+          { path: 'login', element: <LogInPage /> },
+          { path: 'signup', element: <SignUpPage /> },
+        ],
+      },
+    ],
+  },
   {
     element: <AppLayout />,
     children: [
