@@ -393,6 +393,7 @@ export async function setFeedbackStatus(reviewId, userId, status) {
         type: 'feedback_status_changed',
         message: `${review.game.title}: your feedback is now ${status}`,
         link,
+        actor: review.game.owner._id,
         game: review.game._id,
         reviewId: review._id,
       },

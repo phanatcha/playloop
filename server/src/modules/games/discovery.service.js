@@ -44,51 +44,68 @@ export async function setFeatured(gameIds) {
   return { items: ordered.map(toGameCard) };
 }
 
-async function popularGames(limit, exclude) {
+async function popularGames(limit, { exclude = [], ownerId } = {}) {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const banned = await bannedIds();
-  const ranked = await Review.aggregate([
+  const skipOwners = ownerId ? [...banned, new mongoose.Types.ObjectId(ownerId)] : banned;
+  const ranked = await Game.aggregate([
+    { $match: { ...visible, _id: { $nin: exclude }, owner: { $nin: skipOwners } } },
     {
-      $match: {
-        status: 'submitted',
-        removedAt: null,
-        hiddenAt: null,
-        submittedAt: { $gte: since },
+      $lookup: {
+        from: Review.collection.name,
+        let: { game: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$game', '$$game'] },
+                  { $eq: ['$status', 'submitted'] },
+                  { $gte: ['$submittedAt', since] },
+                ],
+              },
+              removedAt: null,
+              hiddenAt: null,
+            },
+          },
+          { $count: 'count' },
+        ],
+        as: 'recent',
       },
     },
-    { $group: { _id: '$game', count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $limit: limit + exclude.length },
+    { $addFields: { recentReviews: { $ifNull: [{ $first: '$recent.count' }, 0] } } },
+    { $sort: { recentReviews: -1, publishedAt: -1, _id: 1 } },
+    { $limit: limit },
+    { $project: { _id: 1 } },
   ]);
-  const ids = ranked.map((row) => row._id).filter((id) => !exclude.some((skip) => skip.equals(id)));
-  const games = await Game.find({
-    _id: { $in: ids.slice(0, limit) },
-    ...visible,
-    owner: { $nin: banned },
-  }).populate('owner', USER_SUMMARY_FIELDS);
+  const ids = ranked.map((row) => row._id);
+  const games = await Game.find({ _id: { $in: ids } }).populate('owner', USER_SUMMARY_FIELDS);
   const byId = new Map(games.map((game) => [game._id.toString(), game]));
-  return ids.map((id) => byId.get(id.toString())).filter(Boolean);
+  return ids.map((id) => byId.get(id.toString()));
 }
 
 export async function listRecommendations(user, limit = 5) {
   const featured = await featuredGames();
   const picked = [];
   const seen = new Set();
+  const reviewed = user
+    ? await Review.find({ reviewer: user.id, status: 'submitted', removedAt: null }).select(
+        'game gameVersion',
+      )
+    : [];
+  const blocked = new Set(reviewed.map((review) => `${review.game}:${review.gameVersion}`));
   const add = (game) => {
-    if (!game || seen.has(game._id.toString()) || picked.length >= limit) return;
-    seen.add(game._id.toString());
+    if (!game || picked.length >= limit) return;
+    const id = game._id.toString();
+    if (seen.has(id) || blocked.has(`${id}:${game.version}`)) return;
+    if (user && game.owner._id.equals(user.id)) return;
+    seen.add(id);
     picked.push(game);
   };
 
   if (user) {
     const me = await User.findById(user.id);
     if (me?.favoriteGenres.length) {
-      const reviewed = await Review.find({
-        reviewer: user.id,
-        status: 'submitted',
-        removedAt: null,
-      }).select('game gameVersion');
-      const blocked = new Set(reviewed.map((review) => `${review.game}:${review.gameVersion}`));
       const banned = await bannedIds();
       const matches = await Game.find({
         ...visible,
@@ -98,9 +115,7 @@ export async function listRecommendations(user, limit = 5) {
         .sort({ publishedAt: -1 })
         .limit(30)
         .populate('owner', USER_SUMMARY_FIELDS);
-      for (const game of matches) {
-        if (!blocked.has(`${game._id}:${game.version}`)) add(game);
-      }
+      for (const game of matches) add(game);
     }
   }
 
@@ -108,12 +123,11 @@ export async function listRecommendations(user, limit = 5) {
     for (const game of featured) add(game);
   }
   if (picked.length < limit) {
-    for (const game of await popularGames(
-      limit,
-      [...seen].map((id) => new mongoose.Types.ObjectId(id)),
-    )) {
-      add(game);
-    }
+    const candidates = await popularGames(limit + blocked.size, {
+      exclude: [...seen].map((id) => new mongoose.Types.ObjectId(id)),
+      ownerId: user?.id,
+    });
+    for (const game of candidates) add(game);
   }
   return { items: picked.map(toGameCard) };
 }

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { ApiError } from '../../utils/ApiError.js';
 import { notify } from '../notifications/notification.service.js';
 import { Game } from '../games/game.model.js';
@@ -31,6 +32,9 @@ export async function reactionSummaries(targetType, targetIds, userId) {
       count: bucket.count,
       reactedByMe: bucket.reactedByMe,
     });
+  }
+  for (const list of grouped.values()) {
+    list.sort((a, b) => EMOJIS.indexOf(a.emoji) - EMOJIS.indexOf(b.emoji));
   }
   return grouped;
 }
@@ -96,13 +100,13 @@ export async function listReplies(reviewId, userId, query) {
 export async function createReply(reviewId, userId, { body }) {
   const review = await visibleReview(reviewId);
   const game = await Game.findById(review.game._id).select('owner title');
-  const reply = await Reply.create({
-    review: review._id,
-    game: game._id,
-    author: userId,
-    body,
+  let reply;
+  await mongoose.connection.transaction(async (session) => {
+    [reply] = await Reply.create([{ review: review._id, game: game._id, author: userId, body }], {
+      session,
+    });
+    await Review.updateOne({ _id: review._id }, { $inc: { replyCount: 1 } }, { session });
   });
-  await Review.updateOne({ _id: review._id }, { $inc: { replyCount: 1 } });
   await reply.populate('author', USER_SUMMARY_FIELDS);
 
   const link = `/games/${game._id}/reviews/${review._id}`;
@@ -112,7 +116,7 @@ export async function createReply(reviewId, userId, { body }) {
     await notify({
       user: recipient,
       type: 'reply_received',
-      message: `${reply.author.displayName} replied to a review of ${game.title}`,
+      message: `${reply.author.displayName} replied to ${recipient === review.reviewer.toString() ? 'your' : 'a'} review of ${game.title}`,
       link,
       actor: userId,
       game: game._id,

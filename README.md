@@ -24,12 +24,12 @@ On macOS or Linux, copy the env file with `cp server/.env.example server/.env`.
 
 `services:up` starts MongoDB on port 27017 (replica set `rs0`) and local S3-compatible storage on port 9000, then creates the media, builds, and play buckets. `dev` starts the API with `server/.env` and restarts it when server files change.
 
-| URL | What it is |
-| --- | --- |
-| http://localhost:4000 | API |
-| http://localhost:4000/api/docs | Swagger UI |
-| http://localhost:4000/api/docs/openapi.json | OpenAPI document |
-| http://localhost:4000/api/health | `{ "status": "ok", "db": "connected" }` when MongoDB is up |
+| URL                                         | What it is                                                 |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| http://localhost:4000                       | API                                                        |
+| http://localhost:4000/api/docs              | Swagger UI                                                 |
+| http://localhost:4000/api/docs/openapi.json | OpenAPI document                                           |
+| http://localhost:4000/api/health            | `{ "status": "ok", "db": "connected" }` when MongoDB is up |
 
 Stop the API with Ctrl+C. Stop the containers with:
 
@@ -68,3 +68,7 @@ curl.exe http://localhost:4000/api/health
 curl.exe -c cookies.txt -H "Content-Type: application/json" -d "{\"username\":\"ada\",\"email\":\"ada@example.com\",\"password\":\"password123\",\"acceptTerms\":true}" http://localhost:4000/api/auth/register
 curl.exe -b cookies.txt http://localhost:4000/api/me
 ```
+
+## Deploy to AWS
+
+See [infra/README.md](infra/README.md) for the step-by-step deploy (Atlas, SAM stack, App Runner, Amplify).
