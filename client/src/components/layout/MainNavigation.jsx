@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router';
+import { NotificationBell } from '../../features/notifications/NotificationBell.jsx';
 import { BrandMark } from '../ui/BrandMark.jsx';
 import { Button } from '../ui/Button.jsx';
 import { cx } from '../../lib/cx.js';
@@ -25,6 +26,7 @@ export function MainNavigation({
       <NavLink to={user ? `/users/${user.username}` : '/login'} className={styles.link}>
         {profileLabel}
       </NavLink>
+      <NotificationBell user={user} />
       {!user && (
         <Button as={Link} to="/login">
           Log In

@@ -1,7 +1,8 @@
 # PlayLoop client
 
 React + Vite frontend for PlayLoop. This package holds the app shell, routing, design tokens and the
-base components exported from the Figma handoff board. Screens are still placeholders.
+base components exported from the Figma handoff board, plus the developer feedback workspace.
+Other screens remain placeholders.
 
 - Figma file: [PlayLoop](https://www.figma.com/design/m8i4PGK6yx0PwGw3aVkSUG/PlayLoop)
 - Handoff board: **Frontend handoff / Base components** (node `427:1491`)
@@ -173,3 +174,36 @@ building the components:
 - `ChoiceChip` uses KoHo in Figma (a legacy exception); it renders in Kode Mono here.
 - Admin screens use a different shell (sidebar and admin header) that is not built yet.
 - The sky background is the rendered 1512 × 1640 frame crop; very tall pages scale it to cover.
+
+## Developer feedback workspace
+
+The following screens are implemented from the PlayLoop Figma file:
+
+| Route                              | Screen                                                       | Figma node           |
+| ---------------------------------- | ------------------------------------------------------------ | -------------------- |
+| `/my-games`                        | Published games and drafts, review counts, workspace links   | `255:503`            |
+| `/my-games/:gameId/form`           | First Impression, Playtest and Final Verdict form editor     | `272:630`, `272:749` |
+| `/my-games/:gameId/feedback`       | Feedback filters, review details, status changes and replies | `270:606`            |
+| `/games/:gameId/reviews`           | Sorted community reviews, helpful votes and discussion       | `318:860`            |
+| `/reviews/:reviewId`               | Full review and discussion                                   | `318:860`            |
+| `/games/:gameId/reviews/:reviewId` | Alias for notification links from the API                    | `318:860`            |
+
+The navigation bell loads `/me/notifications`, polls the unread count once a minute while
+signed in, and supports marking one or all notifications read. Escape and outside clicks close it.
+
+The form builder supports every question type in `docs/api/schemas/form.yaml`, preserves edits
+between tabs, validates all sections before saving, and warns before leaving unsaved edits.
+Final Verdict's editable field is the farewell message; standard verdict questions are defined
+by the backend. Figma currently provides only a wireframe for that editor and no bell dropdown,
+so those surfaces compose the existing glass components and tokens.
+
+All application data and writes use the cookie-authenticated API. No sample data or local-storage
+fallback is included in the app. The complete backend endpoints are on `main`; this frontend
+branch's older server does not yet include the newer auth, discussion and notification modules.
+Use a backend built from current `main` to exercise the integrated flows. Game publishing/editing,
+login and other existing placeholder screens remain separate work.
+
+`src/test/featureFixtures.js` contains API-shaped data for tests only. Feature tests cover form
+persistence and validation, failed requests, navigation guards, inbox status updates, votes,
+replies and notifications. Browser checks use isolated local fixtures rather than live accounts.
+The new Figma exports live in `src/assets/features`; game covers and user portraits remain dynamic.
