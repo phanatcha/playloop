@@ -168,7 +168,7 @@ users:
     parameters:
       - name: search
         in: query
-        description: Matches username, display name or email
+        description: Matches username, display name, email or the exact user ID
         schema:
           type: string
           maxLength: 100
@@ -377,6 +377,107 @@ config:
           application/json:
             schema:
               $ref: ../schemas/admin.yaml#/Config
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+content:
+  get:
+    tags: [Admin]
+    operationId: listContent
+    summary: Search games, reviews and replies to moderate
+    description: Admin only. Newest first. Games are published ones and reviews are submitted ones.
+    parameters:
+      - name: type
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/ModerationTargetType
+      - name: status
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/ContentStatus
+      - name: search
+        in: query
+        description: Matches the game title, the author's username or display name, or the text of a reply
+        schema:
+          type: string
+          maxLength: 100
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Content
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminContentPage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+games:
+  get:
+    tags: [Admin]
+    operationId: listAdminGames
+    summary: Published games to choose featured games from
+    description: Admin only. Only games that can be featured (published and not hidden).
+    parameters:
+      - name: search
+        in: query
+        description: Matches the game title
+        schema:
+          type: string
+          maxLength: 100
+      - name: sort
+        in: query
+        description: playtests and reviews sort by count, recent by the latest review activity
+        schema:
+          type: string
+          enum: [recent, playtests, reviews]
+          default: recent
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Games
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/AdminGamePage
+      '400':
+        $ref: ../responses/errors.yaml#/ValidationError
+      '401':
+        $ref: ../responses/errors.yaml#/Unauthorized
+      '403':
+        $ref: ../responses/errors.yaml#/Forbidden
+history:
+  get:
+    tags: [Admin]
+    operationId: listModerationHistory
+    summary: Admin actions, newest first
+    description: Admin only. Filter by targetType and targetId for one game, review, reply or user.
+    parameters:
+      - name: targetType
+        in: query
+        schema:
+          $ref: ../schemas/enums.yaml#/ReportTargetType
+      - name: targetId
+        in: query
+        schema:
+          $ref: ../schemas/common.yaml#/ObjectId
+      - $ref: ../parameters.yaml#/Page
+      - $ref: ../parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Actions
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/admin.yaml#/ModerationActionPage
       '400':
         $ref: ../responses/errors.yaml#/ValidationError
       '401':

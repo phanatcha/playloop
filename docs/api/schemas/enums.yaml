@@ -97,6 +97,21 @@ ReportStatus:
 ModerationTargetType:
   type: string
   enum: [game, review, reply]
+ContentStatus:
+  type: string
+  enum: [visible, hidden, removed]
+ModerationActionType:
+  type: string
+  enum:
+    - hide
+    - restore
+    - remove
+    - suspend
+    - ban
+    - lift
+    - role_change
+    - report_resolved
+    - report_dismissed
 NotificationType:
   type: string
   enum:
