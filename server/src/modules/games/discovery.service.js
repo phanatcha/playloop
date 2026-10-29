@@ -7,7 +7,7 @@ import { Review } from '../reviews/review.model.js';
 import { USER_SUMMARY_FIELDS } from '../users/user.service.js';
 import { User } from '../users/user.model.js';
 
-const visible = { status: 'published', deletedAt: null, hiddenAt: null, removedAt: null };
+export const visible = { status: 'published', deletedAt: null, hiddenAt: null, removedAt: null };
 
 async function bannedIds() {
   return User.find({ status: 'banned' }).distinct('_id');

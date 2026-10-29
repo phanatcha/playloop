@@ -9,6 +9,7 @@ AdminStats:
       required:
         - users
         - suspendedUsers
+        - bannedUsers
         - games
         - publishedGames
         - submittedReviews
@@ -19,6 +20,9 @@ AdminStats:
         users:
           type: integer
         suspendedUsers:
+          type: integer
+          description: Suspended right now. Suspensions that have ended count as active.
+        bannedUsers:
           type: integer
         games:
           type: integer
@@ -296,3 +300,136 @@ UpdateConfigInput:
         $ref: '#/BadgeDefinition'
     reputationPoints:
       $ref: '#/ReputationPoints'
+ModerationAction:
+  type: object
+  additionalProperties: false
+  required: [id, action, targetType, targetId, actor, reason, createdAt]
+  properties:
+    id:
+      $ref: common.yaml#/ObjectId
+    action:
+      $ref: enums.yaml#/ModerationActionType
+    targetType:
+      $ref: enums.yaml#/ReportTargetType
+    targetId:
+      $ref: common.yaml#/ObjectId
+    actor:
+      $ref: user.yaml#/UserSummary
+    reason:
+      type: string
+      nullable: true
+      description: The reason given for hide, suspend or ban, or the note on a resolved report
+    until:
+      type: string
+      format: date-time
+      description: When the suspension ends. Only on suspend.
+    role:
+      $ref: enums.yaml#/Role
+    createdAt:
+      $ref: common.yaml#/Timestamp
+ModerationActionPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/ModerationAction'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+AdminContentItem:
+  type: object
+  additionalProperties: false
+  required:
+    - type
+    - id
+    - title
+    - excerpt
+    - author
+    - status
+    - reason
+    - openReportCount
+    - link
+    - createdAt
+  properties:
+    type:
+      $ref: enums.yaml#/ModerationTargetType
+    id:
+      $ref: common.yaml#/ObjectId
+    title:
+      type: string
+      description: The game's title. For a review or reply, the title of the game it belongs to.
+      example: Tidebound
+    excerpt:
+      type: string
+      nullable: true
+      description: Start of the review or reply text. null for games.
+    author:
+      $ref: user.yaml#/UserSummary
+    status:
+      $ref: enums.yaml#/ContentStatus
+    reason:
+      type: string
+      nullable: true
+      description: Why it was hidden
+    openReportCount:
+      type: integer
+    lastAction:
+      $ref: '#/ModerationAction'
+    link:
+      type: string
+      description: Client route to the content
+    createdAt:
+      $ref: common.yaml#/Timestamp
+AdminContentPage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/AdminContentItem'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total
+AdminGame:
+  type: object
+  additionalProperties: false
+  required: [game, playtestCount, openReportCount, featured, lastActivityAt]
+  properties:
+    game:
+      $ref: game.yaml#/GameCard
+    playtestCount:
+      type: integer
+      description: Reviews started, finished or not. game.reviewCount counts the submitted ones.
+      example: 342
+    openReportCount:
+      type: integer
+    featured:
+      type: boolean
+    lastActivityAt:
+      $ref: common.yaml#/Timestamp
+AdminGamePage:
+  type: object
+  additionalProperties: false
+  required: [items, page, limit, total]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/AdminGame'
+    page:
+      $ref: common.yaml#/PageNumber
+    limit:
+      $ref: common.yaml#/PageLimit
+    total:
+      $ref: common.yaml#/Total

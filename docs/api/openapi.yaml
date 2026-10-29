@@ -179,6 +179,8 @@ paths:
     $ref: paths/admin.yaml#/reports
   /admin/reports/{reportId}:
     $ref: paths/admin.yaml#/report
+  /admin/content:
+    $ref: paths/admin.yaml#/content
   /admin/content/{targetType}/{targetId}:
     $ref: paths/admin.yaml#/removeContent
   /admin/content/{targetType}/{targetId}/hide:
@@ -195,6 +197,10 @@ paths:
     $ref: paths/admin.yaml#/unsuspendUser
   /admin/users/{userId}/role:
     $ref: paths/admin.yaml#/userRole
+  /admin/games:
+    $ref: paths/admin.yaml#/games
+  /admin/history:
+    $ref: paths/admin.yaml#/history
   /admin/featured:
     $ref: paths/admin.yaml#/featured
   /admin/config:
