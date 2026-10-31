@@ -112,7 +112,7 @@ import { Button, GameCard, Tag } from '../components/index.js';
 | `GlassPanel` (`card`, `panel`)  | surface/card and PlayLoop / panel            | -                     |
 | `GameCard`                      | game title (catalog card)                    | `178:230`             |
 | `GameCardGlass`                 | Game card / glass                            | `70:54`               |
-| `Recommendation`                | Handoff / Recommendation                     | `426:1598`            |
+| `Recommendation` (`tone`)       | Handoff / Recommendation                     | `426:1598`            |
 | `ReviewCard`                    | Profile / Review                             | `220:377`             |
 | `NoticePanel`                   | Handoff / Notice panel                       | `426:1588`            |
 | `MissionCard`                   | Handoff / Mission                            | `426:1558`            |
@@ -157,9 +157,49 @@ Requests include credentials, send JSON, and throw `ApiError` (`status`, `code`,
 ## Routes
 
 `src/routes.jsx` maps every high-fidelity screen to a placeholder that links to its Figma frame:
-Explore Games, game description, review flow, published review, roulette, My Games
-(publish/edit/published game), public and edit profile, log in, sign up and the admin pages.
-Replace a placeholder's `element` with the real page when it is built.
+game description, roulette, publish/edit/published game, public and edit profile and the admin
+pages. Replace a placeholder's `element` with the real page when it is built.
+
+## Review flow
+
+`/games/:gameId/review` is built from the **Review:** frames (`281:685` to `285:826`) in
+`src/features/review`. `POST /games/:gameId/reviews` starts the review or resumes the reviewer's
+draft at `currentStep`.
+
+| Step                  | Screens                                                               |
+| --------------------- | --------------------------------------------------------------------- |
+| First Impression      | One question per screen; the last one's button is **Let's Play!**     |
+| Playtest              | Missions, the game (web) or download setup + end-of-game screenshot   |
+| Developer's questions | One question per screen, from the form's playtest questions           |
+| Final Verdict         | Developer's farewell, intro, then four steps with corner-marked cards |
+| Summary               | Every answer with an Edit link per section, then **Submit Review**    |
+
+- **Leave** appears only where Figma shows it: on the last First Impression question, the last
+  developer's question, the playtest and the summary. The review header's logo is not a link, so
+  there is no other way out mid-section. `canLeave()` in `reviewModel.js` holds the rule.
+- Answers are saved on every Next, so Leave offers "Save and leave" or "Discard review" (which
+  deletes the draft). The leave confirmation is not designed and follows the form builder's prompt.
+- Every question type the form builder offers can be answered. Picked options use the orange tag
+  tone, as in Figma.
+- Not designed and kept simple: the reaction picker's selected state (outlined), how a reaction
+  picks its mission (the most recently accepted one), and the game page theme (the sky background is
+  always used).
+
+## Explore Games
+
+`/` is built from Figma **browse games** (`47:27`) in `src/features/explore`:
+
+- The hero reuses the auth lettering, roulette and floppy exports; only the glass blob
+  (`assets/explore/hero-blob.svg`) is new. The lettering bobs as in the Figma motion (3 s, 26 px)
+  unless reduced motion is on.
+- The games panel reaches 100 px past the content column on each side, as in the 1512 px frame,
+  so three 330 px cards fit next to the sidebar.
+- Sort, search and filters live in the URL with the same names as `GET /games` (`sort`, `search`,
+  `genre`, `platform`, `buildStage`, `page`), so a filtered view can be shared.
+- The sidebar uses `GET /recommendations`, the signed-in user's `favoriteGenres` from `/me`
+  ("Your Top Categories") and the option lists from `GET /meta`, falling back to the shared enums.
+- The **Upcoming** tab is disabled: the API has no upcoming sort yet. Selected filter chips are
+  outlined in their tag colour, since a selected chip is not designed.
 
 ## Open design questions
 

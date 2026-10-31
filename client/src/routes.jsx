@@ -2,10 +2,13 @@ import { createBrowserRouter } from 'react-router';
 import { AppLayout } from './components/layout/AppLayout.jsx';
 import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage.jsx';
 import { PlaceholderPage } from './pages/PlaceholderPage.jsx';
+import { ExplorePage } from './features/explore/ExplorePage.jsx';
 import { MyGamesPage } from './features/games/MyGamesPage.jsx';
 import { FormBuilderPage } from './features/forms/FormBuilderPage.jsx';
 import { FeedbackInboxPage } from './features/feedback/FeedbackInboxPage.jsx';
 import { ReviewsPage, PublishedReviewPage } from './features/reviews/ReviewsPage.jsx';
+import { ReviewLayout } from './features/review/ReviewLayout.jsx';
+import { ReviewPage } from './features/review/ReviewPage.jsx';
 import { AuthNavigation } from './pages/auth/AuthNavigation.jsx';
 import { LogInPage } from './pages/auth/LogInPage.jsx';
 import { SignUpPage } from './pages/auth/SignUpPage.jsx';
@@ -13,9 +16,7 @@ import { SignUpPage } from './pages/auth/SignUpPage.jsx';
 // Route map for the high-fidelity screens. Each placeholder names the Figma frame it should be
 // built from; swap the element for the real page when it lands.
 const screens = [
-  { index: true, title: 'Explore Games', figmaNode: '47:27' },
   { path: 'games/:gameId', title: 'Game description', figmaNode: '167:980' },
-  { path: 'games/:gameId/review', title: 'Review a game', figmaNode: '281:685' },
 
   { path: 'roulette', title: 'Playtest Roulette', figmaNode: '356:1636' },
 
@@ -59,6 +60,16 @@ export const routes = [
     ],
   },
   {
+    // The review flow (Figma 281:685 onwards) has its own header: the logo, Playtime and Leave.
+    element: <ReviewLayout />,
+    children: [
+      {
+        errorElement: <RouteErrorPage />,
+        children: [{ path: 'games/:gameId/review', element: <ReviewPage /> }],
+      },
+    ],
+  },
+  {
     element: <AppLayout />,
     children: [
       {
@@ -69,6 +80,7 @@ export const routes = [
             ...route,
             element: <PlaceholderPage title={title} figmaNode={figmaNode} />,
           })),
+          { index: true, element: <ExplorePage /> },
           { path: 'my-games', element: <MyGamesPage /> },
           { path: 'my-games/:gameId/form', element: <FormBuilderPage /> },
           { path: 'my-games/:gameId/feedback', element: <FeedbackInboxPage /> },

@@ -40,5 +40,38 @@
 
 .metadata {
   font: var(--playloop-type-caption);
-  color: var(--playloop-deep-orange);
+  color: var(--recommendation-tone);
+}
+
+/* Metadata tones follow the Tag tones (lib/tagTones.js). */
+.neutral {
+  --recommendation-tone: var(--playloop-text-body);
+}
+
+.blue {
+  --recommendation-tone: var(--playloop-deep-blue);
+}
+
+.sky {
+  --recommendation-tone: var(--playloop-deep-sky);
+}
+
+.lilac {
+  --recommendation-tone: var(--playloop-deep-lilac);
+}
+
+.lime {
+  --recommendation-tone: var(--playloop-deep-lime);
+}
+
+.sunny {
+  --recommendation-tone: var(--playloop-deep-sunny);
+}
+
+.orange {
+  --recommendation-tone: var(--playloop-deep-orange);
+}
+
+.pink {
+  --recommendation-tone: var(--playloop-deep-pink);
 }

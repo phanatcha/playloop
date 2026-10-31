@@ -1,32 +1,8 @@
 import { ReactionTag, Tag } from '../../components/index.js';
 import { label } from '../shared/format.js';
 import styles from '../shared/Features.module.css';
+import { answerText } from './answerText.js';
 
-function answerText(answer, question) {
-  if (answer.text !== undefined) return answer.text;
-  const option = (id) => question?.options?.find((o) => o.id === id)?.label || id;
-  if (answer.optionId) return option(answer.optionId);
-  if (answer.optionIds)
-    return [...answer.optionIds.map(option), answer.other].filter(Boolean).join(', ');
-  if (answer.other) return answer.other;
-  if (answer.number !== undefined)
-    return (
-      question?.slider?.valueLabels?.[
-        (answer.number - question.slider.min) / question.slider.step
-      ] ?? String(answer.number)
-    );
-  if (answer.grid)
-    return Object.entries(answer.grid)
-      .map(
-        ([row, values]) =>
-          `${question?.grid?.rows.find((r) => r.id === row)?.label || row}: ${[values]
-            .flat()
-            .map((value) => question?.grid?.columns.find((c) => c.id === value)?.label || value)
-            .join(', ')}`,
-      )
-      .join('\n');
-  return 'No answer';
-}
 function Answers({ answers = [], questions = [] }) {
   return answers.map((answer) => {
     const question = questions.find((q) => q.id === answer.questionId);

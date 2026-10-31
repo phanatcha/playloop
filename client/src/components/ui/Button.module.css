@@ -24,6 +24,11 @@
   text-shadow: var(--playloop-shadow-button-label);
 }
 
+.pink {
+  background: var(--playloop-tint-pink);
+  color: var(--playloop-deep-pink);
+}
+
 .glass {
   background: var(--playloop-surface-chip);
   border-color: var(--playloop-border-glass);
